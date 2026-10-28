@@ -10,7 +10,15 @@ ARG MG_VERSION_x=3.5.x
 ARG BOOST_VERSION=1.88.0
 ARG MG5aMC_PY8_INTERFACE_VERSION=1.3
 ARG PYTHON_VERSION=3.10.12
-ARG COMMIT_HASH=4b2903bede33b2d882174ce8184075497669241c
+ARG ROOT_VERSION=6.36.02
+# Populated automatically by BuildKit (amd64, arm64, ...); the fallback keeps
+# the Dockerfile working with builders that do not set it.
+ARG TARGETARCH
+ARG COMMIT_HASH=046d85b593b7e59d40cfe11adecb5cf6ae31dd70
+# luaposix/luafilesystem are cloned from GitHub; pin them so upstream changes
+# can't break the build (luaposix v38 removed the build-aux/luke script used below).
+ARG LUAPOSIX_VERSION=v37.0
+ARG LUAFILESYSTEM_COMMIT=146ab458e821cd7617892099fe8e6e399b46185c
 LABEL org.opencontainers.image.version=${DELPHES_VERSION}
 LABEL org.opencontainers.image.ref.name=latest
 ENV DEBIAN_FRONTEND=noninteractive
@@ -54,8 +62,52 @@ RUN apt-get -qq -y update && \
     python3 -m pip install --no-cache-dir setuptools wheel \
     pyhepmc pybind11 numpy graphviz particle pytest pyarrow==20.0.0 pandas
 
+# Install ROOT.
+# Upstream only publishes binary tarballs for x86_64, so on every other
+# architecture (arm64 / Apple Silicon) build it from source instead. The
+# feature set below is trimmed to what Delphes and the analysis scripts
+# actually use, which keeps the source build to a manageable length:
+# asimage is required for the PNG output of make_validation_plots.py, while
+# OpenGL/Eve is only needed by Delphes' optional `make display` target.
 RUN mkdir -p /opt && \
-    curl -sL https://root.cern/download/root_v6.36.02.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz | tar -C /opt -zxf -
+    ARCH="${TARGETARCH:-$(dpkg --print-architecture)}" && \
+    if [ "${ARCH}" = "amd64" ]; then \
+    curl -sL https://root.cern/download/root_v${ROOT_VERSION}.Linux-ubuntu22.04-x86_64-gcc11.4.tar.gz | tar -C /opt -zxf - ; \
+    else \
+    apt-get -qq -y update && \
+    apt-get -qq -y install --no-install-recommends \
+    libx11-dev \
+    libxpm-dev \
+    libxft-dev \
+    libxext-dev \
+    libssl-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libtiff-dev && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /code && \
+    cd /code && \
+    curl -sL https://root.cern/download/root_v${ROOT_VERSION}.source.tar.gz | tar -zxf - && \
+    cmake -S root-${ROOT_VERSION} -B build \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/opt/root \
+    -Dgnuinstall=OFF \
+    -Dpyroot=ON \
+    -Dasimage=ON \
+    -Dopengl=OFF \
+    -Droofit=OFF \
+    -Dtmva=OFF \
+    -Dwebgui=OFF \
+    -Dhttp=OFF \
+    -Dxrootd=OFF \
+    -Dmysql=OFF \
+    -Dpgsql=OFF \
+    -Dodbc=OFF && \
+    cmake --build build -- -j$(($(nproc) - 1)) && \
+    cmake --build build --target install && \
+    cd / && \
+    rm -rf /code ; \
+    fi
 
 ENV ROOTSYS=/opt/root
 ENV PATH=$ROOTSYS/bin:$PATH
@@ -71,6 +123,7 @@ RUN mkdir -p /usr/local/share/delphes && \
     git clone https://github.com/fermilab-hep-ai/delphes.git -b ${DELPHES_VERSION}-puppiw Delphes-${DELPHES_VERSION} && \
     cd Delphes-${DELPHES_VERSION} && \
     git checkout ${COMMIT_HASH} && \
+    ./configure && \
     make -j$(($(nproc) - 1)) && \
     cd ../ && \
     ln -s Delphes-${DELPHES_VERSION} ./delphes
@@ -136,16 +189,18 @@ RUN mkdir /code && \
 # Install PYTHIA
 RUN mkdir /code && \
     cd /code && \
-    wget --no-check-certificate "https://pythia.org/download/pythia${PYTHIA_VERSION:0:2}/pythia${PYTHIA_VERSION}.tgz" && \
+    wget --no-check-certificate "https://pythia.org/releases/pythia${PYTHIA_VERSION:0:2}/pythia${PYTHIA_VERSION}.tgz" && \
     tar xvfz pythia${PYTHIA_VERSION}.tgz && \
     cd pythia${PYTHIA_VERSION} && \
     ./configure --help && \
     export PYTHON_MINOR_VERSION="${PYTHON_VERSION%.*}" && \
+    ARCH="${TARGETARCH:-$(dpkg --print-architecture)}" && \
+    if [ "${ARCH}" = "amd64" ]; then ENABLE_64BIT="--enable-64bit"; M64="-m64"; else ENABLE_64BIT=""; M64=""; fi && \
     ./configure \
     --prefix=/usr/local \
     --arch=Linux \
     --cxx=g++ \
-    --enable-64bit \
+    ${ENABLE_64BIT} \
     --with-gzip \
     --with-hepmc2=/usr/local \
     --with-lhapdf6=/usr/local \
@@ -153,7 +208,7 @@ RUN mkdir /code && \
     --with-python-bin=/usr/bin \
     --with-python-lib=/usr/lib/python${PYTHON_MINOR_VERSION} \
     --with-python-include=/usr/include/python${PYTHON_MINOR_VERSION} \
-    --cxx-common="-O2 -m64 -pedantic -W -Wall -Wshadow -fPIC -std=c++11" \
+    --cxx-common="-O2 ${M64} -pedantic -W -Wall -Wshadow -fPIC -std=c++11" \
     --cxx-shared="-shared -std=c++11 -lpthread" && \
     make -j$(($(nproc) - 1)) && \
     make install && \
@@ -308,7 +363,7 @@ RUN curl -L -R -O https://www.lua.org/ftp/lua-5.4.7.tar.gz && \
     cd .. && \
     rm -r lua-5.4.7
 # Clone and install luaposix in the correct location
-RUN git clone https://github.com/luaposix/luaposix.git && \
+RUN git clone --depth 1 -b ${LUAPOSIX_VERSION} https://github.com/luaposix/luaposix.git && \
     cd luaposix && \
     lua build-aux/luke LUA=/bin/lua LUA_INCDIR=/include PREFIX=/usr INST_LIBDIR=/usr/lib64/lua/5.4 INST_LUADIR=/usr/share/lua/5.4 && \
     lua build-aux/luke LUA=/bin/lua LUA_INCDIR=/include PREFIX=/usr INST_LIBDIR=/usr/lib64/lua/5.4 INST_LUADIR=/usr/share/lua/5.4 install && \
@@ -317,6 +372,7 @@ RUN git clone https://github.com/luaposix/luaposix.git && \
 # Clone, configure and install luafilesystem in the correct location
 RUN git clone https://github.com/lunarmodules/luafilesystem.git && \
     cd luafilesystem && \
+    git checkout ${LUAFILESYSTEM_COMMIT} && \
     CONFIG_FILE="config" && \
     NEW_PREFIX="/usr" && \
     NEW_LUA_VERSION="5.4" && \
