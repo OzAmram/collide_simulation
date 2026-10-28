@@ -146,6 +146,10 @@ nsqso_born.inc
 logs/*
 # Lxplus artifacts
 *.cc
+# ...but not the Pythia drivers run.sh compiles, which would otherwise need
+# git add -f and are silently left out of a commit without it
+!main*.cc
+!landscape/pythia/*.cc
 
 # Landscape Tier 3 per-event reference: regenerable with dump_tier3.jl, and the
 # committed tier3_summary.csv already carries everything the test consumes

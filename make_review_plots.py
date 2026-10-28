@@ -25,7 +25,7 @@ Two things about the file format that the plots are built around:
   PuppiHT 450 seed.
 
 Menu thresholds drawn as reference lines are the offline 95-100% plateau values
-quoted in instructions.md; the online L1 cuts sit somewhat below them.
+quoted in docs/instructions.md; the online L1 cuts sit somewhat below them.
 """
 
 import argparse

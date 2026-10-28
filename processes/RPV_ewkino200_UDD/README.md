@@ -8,13 +8,16 @@ This is the **non-excluded companion** to `RPV_squark150_cascade_LSP100`. That p
 
 ## Configuration
 
-* Model `RPVMSSM_UFO_Wn1` (vendored in `models/`, see its PATCH_README.md); electroweakino decays in the **matrix element**, not decay tables (same reason as the squark cascade)
-* Production: `p p > n1 x1+`, `n1 x1-`, `x1+ x1-` -- electroweak
+* Model `RPVMSSM_UFO_Wn1` (built into the image, see `docker/RPVMSSM_UFO_Wn1.md`); electroweakino decays in the **matrix element**, not decay tables (same reason as the squark cascade)
+* Production: `p p > n1 x1+-`, `n2 x1+-`, `n1 n2`, `x1+ x1-` -- electroweak, the full multiplet
+* **Pure-Higgsino mixing** set explicitly in the customizecards (n1, n2, x1 Higgsino; n3 bino, n4 wino). The UFO defaults are a bino LSP with a wino chargino, and MG5 does not recompute the mixing from the masses; n2 carries the negative mass eigenvalue that a real NMIX requires
 * Multiplet at 200 GeV, everything else decoupled at 1 TeV
 * **lambda''_323 only** (t s b); every other RVLAMUDD entry zeroed, since the UFO ships 0.2 on all of them
 * The top is left undecayed in the matrix element and handed to Pythia -- its width is large and standard
 * Expected: 8-10 jets, HT_true = 2m = 400 GeV
-* Cross section: **do not use the number MG5 reports** -- the widths are hand-set, see the squark cascade README. Normalise with the production cross section generated on its own.
+* Widths: each state's own lambda''_323 partial width, so every decay has BR = 1 and the production modes keep their natural mix (one common hand-set width let x1 pairs swamp the sample). MG5's reported cross section is therefore the production cross section, to within about 4% (1.092 against 1.137 pb measured at 200 GeV)
+* LO production cross section **1.137 pb** (`n1 x1+-` 0.369, `n2 x1+-` 0.365, `n1 n2` 0.199, `x1+ x1-` 0.204; MG5 3.5.8, nn23lo1, 14 TeV, no k-factor)
+* Proper ctau at lambda''_323 = 0.01: n1 0.59 mm, n2 0.55 mm, x1 0.00024 mm. The run card's `time_of_flight = -1` puts every decay at the primary vertex, so the sample is prompt by construction; physically, n1 and n2 are only prompt (ctau < 1 um) for lambda''_323 above about 0.24, because n1 -> t s b sits close to threshold
 
 ## Why it evades (or does not evade) the Phase-2 L1 menu
 
@@ -66,6 +69,12 @@ in here. If you want it, lower the mass below ~180 GeV or reduce lambda''_323,
 and check the resulting ctau before trusting the sample.
 
 ## Measured
+
+**These were measured before the mixing and width fixes** -- with the UFO's
+default bino n1 and wino x1, without the `n1 n2` / `n2 x1` modes, and with
+one common hand-set width that skewed the mode mix. Re-measure on the
+current cards before relying on the numbers here or in the menu discussion
+below.
 
 MG5 generates the process cleanly (62 subprocesses) and finds the predicted
 modes `n1 > s t b` and `x1+ > s~ b~ b~`. Measured on 500 showered events,

@@ -4,6 +4,11 @@
 (`/usr/local/MG5_aMC_v3_5_8/models/RPVMSSM_UFO`), with **one** change: the
 lightest neutralino is given a settable width.
 
+`docker/Dockerfile` builds it into the image next to the stock model, at
+`/usr/local/MG5_aMC_v3_5_8/models/RPVMSSM_UFO_Wn1`, by copying `RPVMSSM_UFO`
+and applying [`RPVMSSM_UFO_Wn1.patch`](RPVMSSM_UFO_Wn1.patch). Proc cards
+import it by name (`import model RPVMSSM_UFO_Wn1`).
+
 ## Why
 
 Stock `RPVMSSM_UFO` declares
@@ -49,6 +54,8 @@ Two things break without this patch:
 
 ## The patch
 
+[`RPVMSSM_UFO_Wn1.patch`](RPVMSSM_UFO_Wn1.patch) makes two edits.
+
 `particles.py`
 
 ```python
@@ -72,16 +79,17 @@ Wneu1 = Parameter(name = 'Wneu1',
 The default stays `0.0`, so any process that does not set the width explicitly
 behaves exactly as it did with the stock model.
 
-## Regenerating / verifying
+## Verifying
 
 ```bash
 img=/cvmfs/unpacked.cern.ch/registry.hub.docker.com/jmduarte/mapyde:latest
 apptainer exec $img diff -rq \
     /usr/local/MG5_aMC_v3_5_8/models/RPVMSSM_UFO \
-    models/RPVMSSM_UFO_Wn1
+    /usr/local/MG5_aMC_v3_5_8/models/RPVMSSM_UFO_Wn1
 ```
 
-Only `particles.py` and `parameters.py` should differ.
+Apart from the converted-model cache, only `particles.py` and `parameters.py`
+should differ.
 
 ## Checking it took effect
 

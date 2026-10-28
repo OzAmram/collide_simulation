@@ -10,7 +10,7 @@ A 125 GeV Higgs produced by gluon fusion decays to a pair of light pseudoscalars
 * `25:addChannel -> 36 36`, all SM Higgs decays closed
 * m_a = 5 GeV, `36:addChannel -> 22 22`, prompt (`tau0 = 0`)
 * No 2HDM+S UFO is required -- this is entirely a decay-table configuration, which is why it runs on the pythia branch
-* Reference cross section sigma(gg->h) = **28.07 pb** (Pythia LO, no k-factor); rescale by your assumed BR(h->aa) -- see the normalisation warning shared with the S1 points
+* Reference cross section sigma(gg->h) = **28.07 pb** (Pythia LO, no k-factor); rescale by your assumed BR(h->aa) -- see the normalisation warning shared with the S1 points. Here the open-channel fraction in `xsec_pb` is ~0.12, since both a decays are closed down to one channel too; use `xsec_pb_production` from `cross_section.txt`
 
 ## Why it evades (or does not evade) the Phase-2 L1 menu
 
@@ -22,7 +22,7 @@ A 125 GeV Higgs produced by gluon fusion decays to a pair of light pseudoscalars
 | DoubleTkMuon (BPH) | 2,2, abs(eta)<1.5, dR<1.4, OS, dz<1cm | no |
 | DoubleTkMuon (central) | 4,4 | no |
 | DoubleTkElectron | 25,12 | no |
-| DoubleTkIsoPhoton | 22,12 | **no** -- the DoubleTkIsoPhoton 22,12 floor is above a photon from a 5 GeV a; at low m_a the pair is collimated and reconstructs as one object |
+| DoubleTkIsoPhoton | 22,12 | **verify** -- the photons' median pT (21-24 GeV, see below) sits right at the 22,12 thresholds, and where a pair is collimated it merges into one harder EM object, so this seed can fire; check at reconstruction level |
 | DoublePuppiTau | 52,52 | no |
 | PuppiETmiss | 200 | no |
 

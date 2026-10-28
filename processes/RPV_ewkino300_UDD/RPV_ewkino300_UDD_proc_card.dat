@@ -1,4 +1,4 @@
-import model _SIMDIR_/models/RPVMSSM_UFO_Wn1
+import model RPVMSSM_UFO_Wn1
 
 # Light Higgsino multiplet with RPV UDD decays through the THIRD generation.
 #
@@ -17,11 +17,17 @@ import model _SIMDIR_/models/RPVMSSM_UFO_Wn1
 # electroweakino decays stay in the matrix element for the usual reason: their
 # lambda'' widths are far below the QCD scale and MG5's compute_widths would
 # zero them, leaving the LSP stable.
+#
+# All four production modes of the multiplet are generated.  For pure
+# Higgsinos n1 n2 and n2 x1 are about half the total; n1 n1 and n2 n2 vanish.
 
 define q3 = t t~ b b~ s s~
 
 generate    p p > n1 x1+, (n1 > q3 q3 q3), (x1+ > q3 q3 q3)
 add process p p > n1 x1-, (n1 > q3 q3 q3), (x1- > q3 q3 q3)
+add process p p > n2 x1+, (n2 > q3 q3 q3), (x1+ > q3 q3 q3)
+add process p p > n2 x1-, (n2 > q3 q3 q3), (x1- > q3 q3 q3)
+add process p p > n1 n2, (n1 > q3 q3 q3), (n2 > q3 q3 q3)
 add process p p > x1+ x1-, (x1+ > q3 q3 q3), (x1- > q3 q3 q3)
 
 output _OUTDIR_

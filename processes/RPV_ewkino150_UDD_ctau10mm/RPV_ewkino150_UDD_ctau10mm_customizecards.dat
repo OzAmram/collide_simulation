@@ -2,16 +2,46 @@
 #
 # Below the top threshold lambda''_323 (t s b) is closed, so this point uses
 # lambda''_223 (c s b), which runs off the charm Yukawa and is naturally
-# long-lived.  The width below is set to hit the target ctau via
+# long-lived.  lambda''_223 below is set so that n1 hits the target ctau via
 #     ctau[mm] = 1.973e-13 / Gamma[GeV]
-# and the run card sets time_of_flight = 0 so MG5 writes the lifetime into the
-# LHE.  To scan the lifetime, change ONLY the 1000022 width -- the process
-# directory does not need regenerating.
+# and the run card sets time_of_flight = 0 so MG5 writes the lifetimes into the
+# LHE.  To scan the lifetime, scale lambda''_223 and all three widths together
+# (Gamma goes as lambda''^2) -- the process directory does not need
+# regenerating.
 
-# The near-degenerate multiplet, below the top threshold.
+# The near-degenerate multiplet, below the top threshold.  n2 carries the
+# negative mass eigenvalue that a real, pure-Higgsino NMIX requires.
 set param_card mass 1000022 150
-set param_card mass 1000023 151
+set param_card mass 1000023 -151
 set param_card mass 1000024 151
+
+# Pure-Higgsino n1, n2 and x1; bino n3, wino n4 and x2.  The UFO defaults are a
+# bino LSP with a wino chargino, and MG5 does not recompute the mixing from the
+# masses above.
+set param_card nmix 1 1 0.0000000
+set param_card nmix 1 2 0.0000000
+set param_card nmix 1 3 0.7071068
+set param_card nmix 1 4 -0.7071068
+set param_card nmix 2 1 0.0000000
+set param_card nmix 2 2 0.0000000
+set param_card nmix 2 3 0.7071068
+set param_card nmix 2 4 0.7071068
+set param_card nmix 3 1 1.0000000
+set param_card nmix 3 2 0.0000000
+set param_card nmix 3 3 0.0000000
+set param_card nmix 3 4 0.0000000
+set param_card nmix 4 1 0.0000000
+set param_card nmix 4 2 1.0000000
+set param_card nmix 4 3 0.0000000
+set param_card nmix 4 4 0.0000000
+set param_card umix 1 1 0.0000000
+set param_card umix 1 2 1.0000000
+set param_card umix 2 1 1.0000000
+set param_card umix 2 2 0.0000000
+set param_card vmix 1 1 0.0000000
+set param_card vmix 1 2 1.0000000
+set param_card vmix 2 1 1.0000000
+set param_card vmix 2 2 0.0000000
 
 # Everything else decoupled.
 set param_card mass 1000025 1000
@@ -96,12 +126,19 @@ set param_card rvlamudd 3 2 3 0.0
 set param_card rvlamudd 3 3 1 0.0
 set param_card rvlamudd 3 3 2 0.0
 
-# The surviving coupling and its antisymmetric partner.
-set param_card rvlamudd 2 2 3 1.0e-2
-set param_card rvlamudd 2 3 2 -1.0e-2
+# The surviving coupling and its antisymmetric partner, chosen for n1 ctau =
+# 10 mm.
+set param_card rvlamudd 2 2 3 6.6489e-04
+set param_card rvlamudd 2 3 2 -6.6489e-04
 
-# ctau = 10 mm.  This width is what sets the displacement; it also makes the
-# cross section MG5 reports meaningless, as for every other decay-chain point.
+# Each width is that state's own lambda''_223 partial width at this coupling,
+# so every decay has BR = 1, the event mix is the production mix and the cross
+# section MG5 reports is the production cross section, to within a few percent.
+# Proper ctau: n1
+# 10 mm, n2 9.67 mm, x1 7.86e+03 mm.  The chargino's RPV width is three
+# orders of magnitude below the neutralinos', so it mostly decays beyond the
+# tracker; a real Higgsino chargino would cascade to n1 plus a soft pion first,
+# which this card does not generate.
 set param_card decay 1000022 1.9730e-14
-set param_card decay 1000023 1.9730e-14
-set param_card decay 1000024 1.9730e-14
+set param_card decay 1000023 2.0411e-14
+set param_card decay 1000024 2.5115e-17

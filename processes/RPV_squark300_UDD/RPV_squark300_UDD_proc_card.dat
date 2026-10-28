@@ -1,4 +1,4 @@
-import model _SIMDIR_/models/RPVMSSM_UFO_Wn1
+import model RPVMSSM_UFO_Wn1
 
 # The four right-handed light-flavour squarks -- the only states the lambda''
 # UDD operator couples to.  NOTE: 't1' is c_R and 'b1' is s_R in this UFO; the

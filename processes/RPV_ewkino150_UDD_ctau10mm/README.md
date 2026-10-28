@@ -8,14 +8,17 @@ This is the long-lived member of the S5b family: the same non-excluded electrowe
 
 ## Configuration
 
-* Model `RPVMSSM_UFO_Wn1` (vendored in `models/`); the patch is what makes the lifetime below take effect at all -- see its PATCH_README.md
+* Model `RPVMSSM_UFO_Wn1` (built into the image); the patch is what makes the lifetime below take effect at all -- see `docker/RPVMSSM_UFO_Wn1.md`
 * Decays in the **matrix element**
-* Production: `p p > n1 x1+`, `n1 x1-`, `x1+ x1-` -- electroweak
+* Production: `p p > n1 x1+-`, `n2 x1+-`, `n1 n2`, `x1+ x1-` -- electroweak, the full multiplet
+* **Pure-Higgsino mixing** set explicitly in the customizecards (n1, n2, x1 Higgsino; n3 bino, n4 wino). The UFO defaults are a bino LSP with a wino chargino, and MG5 does not recompute the mixing from the masses; n2 carries the negative mass eigenvalue that a real NMIX requires
 * Multiplet at 150 GeV, everything else decoupled at 1 TeV
 * **lambda''_223 only** (c s b); all other RVLAMUDD entries zeroed
-* Width set to 1.9730e-14 GeV, i.e. ctau = 10 mm via ctau[mm] = 1.973e-13 / Gamma[GeV]
+* lambda''_223 = 0.000665, which gives n1 a width of 1.9730e-14 GeV, i.e. ctau = 10 mm via ctau[mm] = 1.973e-13 / Gamma[GeV]; n2 and x1 carry their own partial widths at that coupling (ctau 9.7 mm and 7.9 m), so every decay has BR = 1
 * **run_card sets `time_of_flight = 0`** so MG5 writes the resonance lifetime (VTIMUP) into the LHE -- without this the displacement is silently lost
-* To scan the lifetime, change only the `1000022` width in the customizecards; the process directory does not need regenerating
+* To scan the lifetime, scale lambda''_223 and all three widths together in the customizecards (Gamma goes as lambda''^2); the process directory does not need regenerating
+* Cross section: with every width its own partial width, MG5's reported number is the production cross section to within about 4% (3.074 against 3.195 pb measured)
+* LO production cross section **3.195 pb** (`n1 x1+-` 1.036, `n2 x1+-` 1.020, `n1 n2` 0.573, `x1+ x1-` 0.566; MG5 3.5.8, nn23lo1, 14 TeV, no k-factor)
 
 ## Why it evades (or does not evade) the Phase-2 L1 menu
 
@@ -41,8 +44,13 @@ runs off the **charm** Yukawa rather than the top Yukawa -- smaller by roughly
 displacement is a consequence of the mass being below the top threshold, not
 something imposed by hand.
 
-The width is nonetheless set explicitly to hit ctau = 10 mm, so the lifetime
-is a controlled knob rather than an accident of the coupling value.
+lambda''_223 is nonetheless set to 0.000665 so that n1 has ctau = 10 mm exactly,
+and every width is its state's own partial width at that coupling: the lifetime
+is a controlled knob, and the production modes keep their natural mix. The
+cost is the chargino. Its lambda''_223 width is about 786 times smaller,
+so x1 has ctau = 7.9 m and mostly decays beyond the tracker; n2 sits at
+9.7 mm. A real Higgsino chargino would first cascade to n1 plus a soft pion,
+which is not generated here.
 
 ## How the displacement survives the chain -- CHECK THIS FIRST
 
@@ -52,7 +60,7 @@ lost**. Two things prevent that:
 
 * the run card sets `time_of_flight = 0`, so MG5 writes the invariant lifetime
   (`VTIMUP`) of the intermediate resonance into the LHE, and
-* the Higgsino width is set to the target ctau.
+* lambda''_223 and the widths are set for the target ctau.
 
 Pythia then propagates the resonance before decaying it, and Delphes'
 `ParticlePropagator` starts the daughters from the displaced vertex.
@@ -74,7 +82,8 @@ zero, the sample is prompt and worthless as a displaced benchmark.
 ## Measured -- and the displacement is confirmed real
 
 MG5 generates the process and the lifetime survives into the LHE. Over 4000
-resonance entries:
+resonance entries, measured when all three states still shared the n1 width
+(n1 and n2 keep it now; x1 does not, see above):
 
 | VTIMUP | measured | expected for ctau = 10 mm |
 |---|---|---|
@@ -84,6 +93,12 @@ resonance entries:
 
 That is a textbook exponential at the requested lifetime, so the
 `time_of_flight = 0` mechanism works and the sample really is displaced.
+
+**The jet numbers were measured before the mixing and width fixes** -- with the UFO's
+default bino n1 and wino x1, without the `n1 n2` / `n2 x1` modes, and with
+one common hand-set width that skewed the mode mix. Re-measure on the
+current cards before relying on the numbers here or in the menu discussion
+below.
 
 Jets, on 500 showered events (anti-kT R = 0.4, |eta| < 2.5):
 

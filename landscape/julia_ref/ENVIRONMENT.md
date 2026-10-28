@@ -51,7 +51,7 @@ $J landscape/julia_ref/dump_tier1.jl landscape/julia_ref/fixtures
 $J landscape/julia_ref/dump_tier2.jl landscape/julia_ref/fixtures 10000
 $J landscape/julia_ref/dump_tier3.jl landscape/julia_ref/fixtures 100000
 python3 -m unittest discover -s landscape/tests -t . -v
-sha256sum -c landscape/julia_ref/fixtures/MANIFEST.sha256
+(cd landscape/julia_ref/fixtures && sha256sum -c MANIFEST.sha256)
 ```
 
 All three dumps use fixed seeds, recorded in the scripts and echoed into the

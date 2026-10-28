@@ -52,8 +52,9 @@ HiggsSM:gg2H = on
 !     Gamma[GeV] = hbar*c / ctau[mm] = 1.973e-13 / ctau
 ! Setting 36:tau0 on its own does NOT work -- 36 is a resonance with
 ! doForceWidth on, so Pythia recomputes tau0 from mWidth at init.
-! limitTau0 must also be off, or Pythia refuses to decay anything with
-! tau0 above its default 10 mm ceiling and the a becomes invisible.
+! limitTau0 = off restates the main_signal.cc (and Pythia) default, so the
+! card stays right if that changes: with the CMS-style cutoff of
+! main43.cc (tau0Max = 10 mm) an a with a longer ctau would never decay.
 ParticleDecays:limitTau0 = off
 36:mWidth = 1.9730e-13
 36:doForceWidth = on

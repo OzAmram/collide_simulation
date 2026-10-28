@@ -13,7 +13,7 @@ Generated with **no ISR requirement**, per specification section S1 'Critical'. 
 * Lambda = 1 GeV, pTminFSR = 1.1 GeV, m_X = 2 GeV, m_rhoD = 4 GeV
 * Dark mesons -> light quarks (s sbar for the pseudoscalars, u/d/s for the vectors); the default table is b-dominated and inaccessible at 2 GeV
 * Reference cross section sigma(gg -> phi) = **28.07 pb** (Pythia LO, no k-factor)
-* **Normalisation warning:** the sigma printed by the generator is sigma(gg->phi) multiplied by Pythia's internal open-channel fraction. For an *added* exotic channel that fraction is a width-bookkeeping artifact, not a physical branching ratio (it comes out ~1.4e-4 at m_phi = 400). **Normalise as sigma(gg->phi) x BR(phi->hidden) using the reference sigma above and your own assumed BR.**
+* **Normalisation warning:** the sigma printed by the generator is sigma(gg->phi) multiplied by Pythia's internal open-channel fraction. For an *added* exotic channel that fraction is a width-bookkeeping artifact, not a physical branching ratio (it comes out ~1.4e-4 at m_phi = 400, ~0.48 at 125). **Normalise as sigma(gg->phi) x BR(phi->hidden) using the reference sigma above and your own assumed BR.** `cross_section.txt` records the fraction as `open_frac_25` and sigma(gg->phi) as `xsec_pb_production`
 
 ## Why it evades (or does not evade) the Phase-2 L1 menu
 

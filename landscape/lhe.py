@@ -259,7 +259,9 @@ def pythia_fragment(scalar_id=BSM_SCALAR_ID, m_nominal=5.0,
         "! Set explicitly rather than relied on.",
         "LesHouches:setLifetime = 1",
         "",
-        "! The cascade is decayed in the LHE; let long-lived hadrons decay too.",
+        "! Restates the main_signal.cc (and Pythia) default, as in the MadGraph",
+        "! Standard Model samples: K0S, Lambda and the other hadrons with",
+        "! 10 mm < ctau < 1 m decay here.  pi+-, K+-, K0L, mu and n never do.",
         "ParticleDecays:limitTau0 = off",
     ])
 

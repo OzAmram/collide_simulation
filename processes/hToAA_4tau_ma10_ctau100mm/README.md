@@ -12,7 +12,7 @@ The pseudoscalar is given a proper lifetime of 100 mm, so the four objects emerg
 * `25:addChannel -> 36 36`, all SM Higgs decays closed
 * m_a = 10 GeV, `36:addChannel -> 15 -15`, **ctau = 100 mm**
 * No 2HDM+S UFO is required -- this is entirely a decay-table configuration, which is why it runs on the pythia branch
-* Reference cross section sigma(gg->h) = **28.07 pb** (Pythia LO, no k-factor); rescale by your assumed BR(h->aa) -- see the normalisation warning shared with the S1 points
+* Reference cross section sigma(gg->h) = **28.07 pb** (Pythia LO, no k-factor); rescale by your assumed BR(h->aa) -- see the normalisation warning shared with the S1 points. Here the open-channel fraction in `xsec_pb` is ~0.12, since both a decays are closed down to one channel too; use `xsec_pb_production` from `cross_section.txt`
 
 ## Why it evades (or does not evade) the Phase-2 L1 menu
 
@@ -43,9 +43,10 @@ a displacement -- this was observed directly before it was fixed. The width is
 therefore set to Gamma = hbar*c / ctau = 1.973e-13 / ctau[mm], and tau0 is set as
 well so the two agree.
 
-`ParticleDecays:limitTau0 = off` is also required, or Pythia refuses to decay
-anything with tau0 above its default 10 mm ceiling and the pseudoscalar becomes
-silently invisible.
+`ParticleDecays:limitTau0 = off` is set explicitly as well. It is already the
+`main_signal.cc` (and Pythia) default, but with the CMS-style cutoff of
+`main43.cc` (`tau0Max = 10 mm`) Pythia would never decay a pseudoscalar with a
+longer ctau, and it would become silently invisible.
 
 Measured transverse decay radius (150 events), confirming the scaling:
 

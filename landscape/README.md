@@ -2,8 +2,7 @@
 
 Signal generation for the landscape model of R. T. D'Agnolo, M. Ettengruber and
 L.-T. Wang, *Landscapes at Colliders* ([arXiv:2512.18001]). Specification:
-[`instructions_landscape_signal.md`](../instructions_landscape_signal.md) at the
-repository root.
+[`docs/instructions_landscape_signal.md`](../docs/instructions_landscape_signal.md).
 
 N ~ 200 light singlet scalars mix with the Higgs (coupling λ, mixing angle θ)
 and couple to one another through a quartic λ′. When λ′ is not tiny a scalar

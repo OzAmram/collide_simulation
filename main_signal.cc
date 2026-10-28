@@ -223,8 +223,10 @@ int main(int argc, char *argv[]) {
 
   pythia.stat();
 
+  // A short sample is an error, not a warning: run.sh would otherwise publish
+  // it under the requested event count.
   if (nAccepted < nEvents) {
-    std::cout << "main_signal: WARNING -- only " << nAccepted << " of "
+    std::cout << "main_signal: ERROR -- only " << nAccepted << " of "
               << nEvents << " events accepted; "
               << (pythia.info.atEndOfFile()
                   ? "the LHE input ran out -- generate it with more headroom "
@@ -254,6 +256,30 @@ int main(int argc, char *argv[]) {
   std::cout << "XSEC_PB " << sigma * eff * 1.0e9 << " "
             << sigmaErr * eff * 1.0e9 << std::endl;
 
+  // The Higgs-portal cards close the SM decays of the 25 and add the exotic
+  // channel with meMode 100 and bRatio 1, which Pythia gives a partial width of
+  // 1 x mWidth on top of the SM widths it computes.  gg -> h is scaled by the
+  // fraction of the width left open, and that fraction includes the open
+  // fractions of the daughters' own decays: about 0.48 for the SUEPlike points,
+  // about 0.12 for h -> a a, where each a is closed down to one added channel
+  // the same way.  sigmaGen is therefore sigma(gg -> h) x that implied BR, not
+  // sigma(gg -> h).  Report the fraction and the production cross section it
+  // implies, so the sample can be normalised to sigma(gg -> h) x a BR of the
+  // user's choosing.  The ISR control point produces the 25 through the
+  // H + jet processes, which carry the same factor.
+  bool higgsProduced = false;
+  for (const char* proc : {"HiggsSM:gg2H", "HiggsSM:gg2Hg(l:t)",
+                           "HiggsSM:qg2Hq(l:t)", "HiggsSM:qqbar2Hg(l:t)"})
+    higgsProduced = higgsProduced || pythia.flag(proc);
+  if (higgsProduced) {
+    double openFrac = pythia.particleData.resOpenFrac(25);
+    std::cout << "OPEN_FRAC_25 " << openFrac << std::endl;
+    if (openFrac > 0.)
+      std::cout << "XSEC_PB_PRODUCTION " << sigma / openFrac * 1.0e9 << " "
+                << sigmaErr / openFrac * 1.0e9 << std::endl;
+  }
+
   if (nAccepted == 0) return 5;
+  if (nAccepted < nEvents) return 6;
   return 0;
 }

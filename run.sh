@@ -48,7 +48,17 @@ fi
 # The pythia mode exists because several signals (Hidden Valley dark showers,
 # Higgs-portal, Z') are generated entirely inside Pythia, and because the
 # container ships DelphesHepMC2 but no DelphesPythia8 binary.
+#
+# The switch is the presence of ${proc}_pythia_card.dat, one character away
+# from ${proc}_pythia8_card.dat (MadGraph's shower card).  A process that ships
+# a proc card as well is ambiguous -- most likely a misnamed shower card -- and
+# would otherwise silently skip MadGraph, so refuse it.
 if [ -e ${simdir}/processes/${proc}/${proc}_pythia_card.dat ]; then
+  if [ -e ${simdir}/processes/${proc}/${proc}_proc_card.dat ]; then
+    echo "${proc} has both ${proc}_pythia_card.dat and ${proc}_proc_card.dat;" \
+         "a MadGraph shower card must be named ${proc}_pythia8_card.dat"
+    exit 1
+  fi
   gen_mode=pythia
 else
   gen_mode=madgraph
@@ -90,10 +100,7 @@ fi
 
 if [ "$gen_mode" = "madgraph" ]; then
   cp ${simdir}/processes/${proc}/${proc}_proc_card.dat tmpdir/proc_card.dat
-  # _SIMDIR_ lets a proc card import a UFO model vendored in this repository
-  # (models/), which the RPV points need -- see models/RPVMSSM_UFO_Wn1.
-  # Cards that do not use the placeholder are unaffected.
-  sed -i -e "s@_OUTDIR_@tmpdir@g" -e "s@_SIMDIR_@${simdir}@g" tmpdir/proc_card.dat
+  sed -i -e "s@_OUTDIR_@tmpdir@g" tmpdir/proc_card.dat
   /usr/local/MG5_aMC_v3_5_8/bin/mg5_aMC tmpdir/proc_card.dat
   ls -l tmpdir/bin/
   ls tmpdir/bin/madevent
@@ -335,6 +342,13 @@ else
   grep '^FILTER_EFF ' tmpdir/pythia.log | tail -n 1 \
       | awk '{print "filter_eff "$2"\nfilter_accepted "$3"\nfilter_generated "$4}' \
       >> outdir/cross_section.txt
+  # Higgs-portal cards only: the fraction of the 25 width left open, which
+  # xsec_pb already includes, and the gg -> h cross section with it undone.
+  grep '^OPEN_FRAC_25 ' tmpdir/pythia.log | tail -n 1 \
+      | awk '{print "open_frac_25 "$2}' >> outdir/cross_section.txt
+  grep '^XSEC_PB_PRODUCTION ' tmpdir/pythia.log | tail -n 1 \
+      | awk '{print "xsec_pb_production "$2"\nxsec_pb_production_err "$3}' \
+      >> outdir/cross_section.txt
   cat outdir/cross_section.txt
 
   # Delphes must run from inside Cards/: delphes_card.dat sources its muon
@@ -425,15 +439,21 @@ if [ "$is_test" = "True" ]; then
             --outdir "${valdir}"
     ret_val_root=$?
 
-    # 3c. Parquet-based validation (use the Parquet we just wrote)
-    python3 "${simdir}/make_validation_plots_parquet.py" \
-            "outdir/event.parquet" \
-            --outdir "${valdir}"
-    ret_val_parquet=$?
+    # 3c. Parquet-based validation (use the Parquet we just wrote), if the
+    # script is present -- it is not in the repository at the moment.
+    if [ -e "${simdir}/make_validation_plots_parquet.py" ]; then
+        python3 "${simdir}/make_validation_plots_parquet.py" \
+                "outdir/event.parquet" \
+                --outdir "${valdir}"
+        ret_val_parquet=$?
+    else
+        echo "make_validation_plots_parquet.py not found; skipping parquet validation"
+    fi
 fi
 
 # ----------------------------------------------------------------------
-# Delete ROOT only after successful conversion and validations (not in test)
+# Delete ROOT only after successful conversion (not in test).  The validation
+# plots run in test mode only, so production checks the conversion alone.
 # ----------------------------------------------------------------------
 
 if [ "$is_test" = "True" ]; then
@@ -449,12 +469,11 @@ if [ "$is_test" = "True" ]; then
     fi
     
 else
-    if [ ${conv_status} -eq 0 ] && [ -s "outdir/event.parquet" ] \
-       && [ ${ret_plots} -eq 0 ] && [ ${ret_val_root} -eq 0 ] && [ ${ret_val_parquet} -eq 0 ]; then
-        echo "All validations passed; deleting ROOT file ${final_root}."
+    if [ ${conv_status} -eq 0 ] && [ -s "outdir/event.parquet" ]; then
+        echo "Conversion succeeded; deleting ROOT file ${final_root}."
         rm -f "${final_root}"
     else
-        echo "Conversion or validation failed; keeping ROOT file ${final_root}."
+        echo "Conversion failed; keeping ROOT file ${final_root}."
     fi
 fi
 

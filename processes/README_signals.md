@@ -94,16 +94,16 @@ multiplicity and energy; those masses are excluded by existing LHC searches, so
 they are signature benchmarks rather than viable model points. The Higgsino
 points are the non-excluded counterparts.
 
-**These points need the patched UFO in `models/RPVMSSM_UFO_Wn1`, not the
-container's `RPVMSSM_UFO`.** The stock model hardcodes `width = Param.ZERO` for
+**These points need the patched UFO `RPVMSSM_UFO_Wn1`, not the stock
+`RPVMSSM_UFO`.** The stock model hardcodes `width = Param.ZERO` for
 the neutralino, so `set param_card decay 1000022 ...` in a customizecards file
 is silently discarded. The `n1` propagator in the decay chain then has no
 regulator, the integration does not converge, and MadGraph unweights only a
 handful of events -- measured at 9, 5 and 11 out of 5000 requested for the 120,
 300 and 600 GeV cascade points. For `RPV_ewkino150_UDD_ctau10mm` the discarded
 width is also what encodes the lifetime, so that point came out prompt. The
-proc cards reference the patched model through the `_SIMDIR_` placeholder that
-`run.sh` substitutes. See `models/RPVMSSM_UFO_Wn1/PATCH_README.md`.
+image builds the patched model next to the stock one, and the proc cards import
+it by name. See `docker/RPVMSSM_UFO_Wn1.md`.
 
 **In this UFO the MG5 particle name is not the squark flavour.** MG5 names
 squarks from their PDG code, but `USQMIX` / `DSQMIX` here order the mass
@@ -236,8 +236,20 @@ points write five numbers to `outdir/cross_section.txt`:
 | `xsec_pb`, `xsec_pb_err` | cross section **after** the filter -- what the sample represents |
 | `xsec_pb_unfiltered`, `xsec_pb_unfiltered_err` | before the filter |
 | `filter_eff`, `filter_accepted`, `filter_generated` | the measured efficiency and the counts behind it |
+| `open_frac_25` | Higgs-portal points only: Pythia's open-channel fraction for the 25, which every cross section above already includes |
+| `xsec_pb_production`, `xsec_pb_production_err` | Higgs-portal points only: the unfiltered cross section with `open_frac_25` divided out, i.e. σ(gg→φ) |
 
 An unfiltered point reports an efficiency of 1 and two identical cross sections.
+
+For the Higgs-portal points `xsec_pb` is **not** σ(gg→φ) × filter efficiency.
+Their cards close the SM decays and add the exotic channel with `bRatio = 1`,
+which Pythia books as a partial width of 1 × `25:mWidth` on top of the SM widths
+it computes, and it scales the production cross section by the fraction of the
+width left open -- including the open fractions of the daughters' own decays.
+That fraction is a bookkeeping artifact, not a physical branching ratio: about
+0.48 for the SUEPlike points at 125 GeV, about 0.12 for h→aa, and ~1e-4 at
+m_φ = 400 GeV. Normalise these samples as `xsec_pb_production` × `filter_eff` ×
+your own BR.
 
 ### Measured efficiency
 
@@ -281,9 +293,15 @@ section 4 still holds.
 **Cross sections.** For the Pythia-generated points the LO cross section is
 written to `outdir/cross_section.txt` at generation time. No k-factors are
 applied. For the Higgs-portal points (`SUEPlike_*`, `hToAA_*`) normalise as
-σ(gg→φ) × BR using your own assumed branching ratio. For the RPV decay-chain
-points (`*_cascade_*`, `RPV_ewkino*`) the cross section MadGraph reports is not
+σ(gg→φ) × BR using your own assumed branching ratio; σ(gg→φ) is recorded as
+`xsec_pb_production`, while `xsec_pb` carries Pythia's open-channel fraction
+(see the generator-level filter section above). For the RPV squark cascade
+points (`*_cascade_*`) the cross section MadGraph reports is not
 usable, because the widths are set by hand to build the decay-chain propagators;
-normalise with the production cross section generated on its own.
+normalise with the production cross section generated on its own. The
+`RPV_ewkino*` points instead set every width to its state's own partial width,
+so every decay has BR = 1 and MadGraph's number is the production cross section
+to within about 4%; each README also quotes the LO production cross section by
+mode.
 
 Per-point details are in each process directory's `README.md`.

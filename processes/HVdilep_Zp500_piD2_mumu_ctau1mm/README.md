@@ -8,7 +8,7 @@ Identical to `HVdilep_Zp500_piD2_mumu` except that every decaying dark meson is 
 
 * As `HVdilep_Zp500_piD2_mumu`
 * `4900111/4900221/4900113/4900223:tau0 = 1` mm
-* `ParticleDecays:limitTau0 = off` -- **required**; the default CMS-style `tau0Max = 10 mm` would stop the dark mesons decaying at all and make the sample silently invisible
+* `ParticleDecays:limitTau0 = off` -- the `main_signal.cc` (and Pythia) default, set explicitly because the CMS-style cutoff of `main43.cc` (`tau0Max = 10 mm`) would stop dark mesons with a longer ctau decaying at all and make the sample silently invisible
 * Cross section: **5.585 pb** (unchanged by the lifetime)
 
 ## Why it evades (or does not evade) the Phase-2 L1 menu
@@ -66,7 +66,10 @@ in the muon system.
   and have empty decay tables; they are marked stable explicitly. Measured on a
   50-event test at m_Zp = 500 / m_piD = 2: 5.4 decaying vs 5.2 stable dark
   mesons per event. This is identical between the ee and mumu samples, so the
-  controlled comparison is unaffected.
+  controlled comparison is unaffected. Delphes keeps a particle with no ROOT
+  PDG entry out of its stable-particle list (`DelphesHepMC2Reader`), so these
+  never reach the detector simulation, `Gen_JetAK4` or `Gen_MissingET`: they
+  are invisible throughout and appear only in the GenParticle branch.
 * **The vectors are forced too.** With `probVector = 0.75` three quarters of the
   dark mesons are `rhov`. The specification fragment pins only `4900111`, which
   would have left most of the visible energy on the default flavour-democratic

@@ -1,4 +1,4 @@
-import model _SIMDIR_/models/RPVMSSM_UFO_Wn1
+import model RPVMSSM_UFO_Wn1
 
 # Displaced light Higgsino multiplet, below the top threshold.
 #
@@ -6,11 +6,16 @@ import model _SIMDIR_/models/RPVMSSM_UFO_Wn1
 # closed, and the c s b mode runs off the charm Yukawa, which is small enough
 # that the Higgsino is naturally long-lived.  Three jets per state, two of them
 # heavy-flavour, all emerging from a displaced vertex.
+#
+# All four production modes of the multiplet, as for the prompt S5b points.
 
 define q2 = c c~ s s~ b b~
 
 generate    p p > n1 x1+, (n1 > q2 q2 q2), (x1+ > q2 q2 q2)
 add process p p > n1 x1-, (n1 > q2 q2 q2), (x1- > q2 q2 q2)
+add process p p > n2 x1+, (n2 > q2 q2 q2), (x1+ > q2 q2 q2)
+add process p p > n2 x1-, (n2 > q2 q2 q2), (x1- > q2 q2 q2)
+add process p p > n1 n2, (n1 > q2 q2 q2), (n2 > q2 q2 q2)
 add process p p > x1+ x1-, (x1+ > q2 q2 q2), (x1- > q2 q2 q2)
 
 output _OUTDIR_

@@ -6,7 +6,7 @@ Pair production of degenerate light squarks at 300 GeV, each decaying through th
 
 ## Configuration
 
-* Model: `RPVMSSM_UFO_Wn1` (vendored in `models/`; see `models/RPVMSSM_UFO_Wn1/PATCH_README.md`)
+* Model: `RPVMSSM_UFO_Wn1` (built into the image from the stock `RPVMSSM_UFO`; see `docker/RPVMSSM_UFO_Wn1.md`)
 * `generate p p > sq sq~, (sq > lq~ lq~), (sq~ > lq lq)` over the **four right-handed** light-flavour squarks -- u_R, c_R, d_R, s_R -- which are the only states the lambda'' UDD operator couples to. The decay is in the matrix element, not the SLHA decay table
 * m_squark = 300 GeV; stops, sbottoms, the left-handed light-flavour squarks, the gluino and all gauginos decoupled at 500 GeV, so squark pair production dominates and no MET is produced
 * lambda''_112 (u d s) and lambda''_212 (c d s) at 0.2; **every other entry of all three RPV blocks** (RVLAMUDD, RVLAMLQD, RVLAMLLE) zeroed. Both couplings are needed: 112 alone leaves the charm squark with no open decay. All indices stay in the first two generations, so no top is produced and there is no genuine MET

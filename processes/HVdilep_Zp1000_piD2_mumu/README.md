@@ -41,7 +41,10 @@ This point is one half of the matched ee/mumu pair: its partner is `HVdilep_Zp10
   and have empty decay tables; they are marked stable explicitly. Measured on a
   50-event test at m_Zp = 500 / m_piD = 2: 5.4 decaying vs 5.2 stable dark
   mesons per event. This is identical between the ee and mumu samples, so the
-  controlled comparison is unaffected.
+  controlled comparison is unaffected. Delphes keeps a particle with no ROOT
+  PDG entry out of its stable-particle list (`DelphesHepMC2Reader`), so these
+  never reach the detector simulation, `Gen_JetAK4` or `Gen_MissingET`: they
+  are invisible throughout and appear only in the GenParticle branch.
 * **The vectors are forced too.** With `probVector = 0.75` three quarters of the
   dark mesons are `rhov`. The specification fragment pins only `4900111`, which
   would have left most of the visible energy on the default flavour-democratic
