@@ -115,10 +115,17 @@ def card(tag):
                        fragment=LHE.pythia_fragment())
 
 
+def lhe_flags(tag):
+    """The landscape.make_lhe options of a point, after --benchmark."""
+    _, mode, _ = benchmark_entry(tag)
+    # L-A leaves out the Julia's B-meson production term; see BMESON_NOTE.
+    return "--fast-branching" + (" --no-bmeson-term" if mode == "direct" else "")
+
+
 def lhe_args(tag):
     return ("# arguments for landscape.make_lhe; run.sh appends --nevents,\n"
             "# --seed and --out.  One line, comments ignored.\n"
-            "--benchmark {0} --fast-branching\n".format(tag))
+            "--benchmark {0} {1}\n".format(tag, lhe_flags(tag)))
 
 
 # ---------------------------------------------------------------------------
@@ -205,22 +212,21 @@ in `{name}_lhe_args.dat`, writes the parton-level summary to
 To produce the LHE on its own, outside the job:
 
 ```bash
-python3 -m landscape.make_lhe --benchmark {tag} --fast-branching \\
+python3 -m landscape.make_lhe --benchmark {tag} {flags} \\
     --nevents 10000 --seed 1234 --out {tag}.lhe --fragment {tag}.cmnd
 ```
 """
 
 
-BMESON_NOTE = """**The cross section is dominated by a dimensionally inconsistent term in the
-original code, and should not be used as a rate without reading this.** The
-Julia's production sum adds `1e-3 * bmesondecay` -- a dimensionless
-branching-ratio-like quantity -- to two terms that are cross sections in barns
-(`ScalarProductionshare.jl` lines 66-81 and 143-153). It contributes
-{bmeson:.4g} pb against {direct:.4g} pb of genuine direct production, a factor
-{ratio:.0f}. Because it is nonzero only below 4.7 GeV it also skews *which*
-scalar is produced, not just the normalisation. It is reproduced as written,
-because it is what defines the authors' L-A; pass `--no-bmeson-term` to
-`landscape.make_lhe` to drop it, which gives {without:.4g} pb.
+BMESON_NOTE = """**The original code's B-meson production term is switched off here**
+(`--no-bmeson-term` in the args file). The Julia's production sum adds
+`1e-3 * bmesondecay` -- a dimensionless branching-ratio-like quantity -- to two
+terms that are cross sections in barns (`ScalarProductionshare.jl` lines 66-81
+and 143-153). Left in, it would contribute {bmeson:.4g} pb against {direct:.4g} pb
+of genuine direct production, a factor {ratio:.0f}, and because it is nonzero
+only below 4.7 GeV it would also skew *which* scalar is produced. The authors'
+L-A as written includes it; remove `--no-bmeson-term` from the args file to
+reproduce that ({with_b:.4g} pb).
 """
 
 RETUNE_NOTE = """lambda is retuned from the shipped 1e-4 to {lam:g}, which is what puts this
@@ -305,14 +311,15 @@ def readme(tag, name, measured=None):
     measured = measured or {}
 
     if mode == "direct":
-        xs, _ = P.cross_sections(spectrum, consts, model)
+        # Without the B-meson term, matching --no-bmeson-term in lhe_flags.
+        xs, _ = P.cross_sections(spectrum, consts, model, include_bmeson=False)
         xsec = sum(xs) * 1e12
         h, d, b = P.production_breakdown(spectrum, consts, model,
                                          P.SIGMA_H_CROSSSECTIONS)
         norm_note = BMESON_NOTE.format(
             bmeson=b * 1e12, direct=d * 1e12,
             ratio=(b / d) if d else float("nan"),
-            without=(h + d) * 1e12)
+            with_b=(h + d + b) * 1e12)
     else:
         xs, _ = P.cross_sections_higgs_only(spectrum, consts, model)
         xsec = sum(xs) * 1e12
@@ -334,7 +341,9 @@ def readme(tag, name, measured=None):
         ratio=model.lam_prime / model.lam,
         mstar=model.M_star, vev2=model.vev_2, theta=model.mixing(consts),
         mlow=model.mass_low, mhigh=model.mass_high, seed=seed,
-        mode=("direct ggF (+ the Julia's B-meson term)" if mode == "direct"
+        flags=lhe_flags(tag),
+        mode=("direct ggF (the Julia's B-meson term off, see below)"
+              if mode == "direct"
               else "gg -> h -> phi_i phi_j"),
         xsec=xsec, br_phys=br_phys,
         br_code=P.br_h_to_bsm(spectrum, consts, model),

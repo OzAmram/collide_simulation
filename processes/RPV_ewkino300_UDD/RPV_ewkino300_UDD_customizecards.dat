@@ -126,17 +126,17 @@ set param_card rvlamudd 3 2 1 0.0
 set param_card rvlamudd 3 3 1 0.0
 
 # The surviving coupling and its antisymmetric partner.
-set param_card rvlamudd 3 2 3 1.0e-02
-set param_card rvlamudd 3 3 2 -1.0e-02
+set param_card rvlamudd 3 2 3 3.0e-01
+set param_card rvlamudd 3 3 2 -3.0e-01
 
-# Each width is that state's own lambda''_323 partial width (EWKINO_RPV_WIDTHS
-# in make_signal_cards.py), so every decay in the chain has BR = 1, the event
-# mix is the production mix and the cross section MG5 reports is the production
-# cross section, to within a few percent.  A common hand-set width would weight
-# each mode by
+# Each width is that state's own lambda''_323 partial width at this coupling
+# (EWKINO_RPV_WIDTHS in make_signal_cards.py, scaled as lambda''^2), so every
+# decay in the chain has BR = 1, the event mix is the production mix and the
+# cross section MG5 reports is the production cross section, to within a few
+# percent.  A common hand-set width would weight each mode by
 # Gamma_i Gamma_j / width^2 instead.  At this coupling the proper ctau is
-# n1 0.00038 mm, n2 0.00038 mm, x1 3e-05 mm; with time_of_flight = -1 the
+# n1 4.3e-07 mm, n2 4.2e-07 mm, x1 3.4e-08 mm; with time_of_flight = -1 the
 # decays are placed at the primary vertex regardless.
-set param_card decay 1000022 5.1560e-10
-set param_card decay 1000023 5.2120e-10
-set param_card decay 1000024 6.5180e-09
+set param_card decay 1000022 4.6404e-07
+set param_card decay 1000023 4.6908e-07
+set param_card decay 1000024 5.8662e-06

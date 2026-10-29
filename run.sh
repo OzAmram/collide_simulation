@@ -7,12 +7,6 @@ nevts=$2
 seed=$3
 simdir=$4
 is_test=$5
-# Optional 6th argument.  In test mode run.sh copies the whole Delphes ROOT into
-# outdir/ for inspection; for a large production that is a multi-GB duplicate of
-# the biggest file in the job, written only to be deleted again by the
-# submission wrapper.  Pass False to skip it.  Unset means True, so existing
-# callers are unaffected.
-keep_test_root=${6:-True}
 
 if [ "$is_test" = "True" ]; then
     start_time="$(date -u +%s)"
@@ -459,9 +453,7 @@ fi
 if [ "$is_test" = "True" ]; then
     mkdir -p outdir
     label="${proc}-${nevts}-${seed}"
-    if [ "$keep_test_root" != "True" ]; then
-        echo "keep_test_root=${keep_test_root}: not copying the Delphes ROOT into outdir/"
-    elif [ -n "${final_root}" ] && [ -s "${final_root}" ]; then
+    if [ -n "${final_root}" ] && [ -s "${final_root}" ]; then
         cp -f "${final_root}" "outdir/${label}.root"
         echo "Saved test ROOT to outdir/${label}.root"
     else

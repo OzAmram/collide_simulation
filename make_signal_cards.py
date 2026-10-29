@@ -1167,7 +1167,7 @@ output _OUTDIR_
 
 
 # RPV partial widths in GeV of (n1, n2, x1+) into the decay each S5b/S5c card
-# generates, at lambda'' = EWKINO_RPV_LAMBDA and the pure-Higgsino mixing above:
+# generates, at lambda'' = EWKINO_WIDTH_LAMBDA and the pure-Higgsino mixing above:
 # MG5 3.5.8 on the decay processes themselves (generate n1 > q3 q3 q3 and so on)
 # with each point's param card.  The cards set every width to its own partial
 # width, so each state decays with BR = 1 and the event mix is the production
@@ -1175,12 +1175,27 @@ output _OUTDIR_
 # instead: at 200 GeV n1 -> t s b sits 27 GeV above threshold and x1+ -> b~ b~ s~
 # does not, so x1 pairs swamped every other mode.  Partial widths scale as
 # lambda''^2.
-EWKINO_RPV_LAMBDA = 1.0e-2
+EWKINO_WIDTH_LAMBDA = 1.0e-2
 EWKINO_RPV_WIDTHS = {
     150.0: (4.463e-12, 4.617e-12, 5.681e-15),   # lambda''_223, c s b
     200.0: (3.320e-13, 3.586e-13, 8.243e-10),   # lambda''_323, t s b
     300.0: (5.156e-10, 5.212e-10, 6.518e-09),   # lambda''_323, t s b
 }
+
+# lambda''_323 of the prompt S5b points.  At 1e-2 the 200 GeV n1 and n2 have
+# ctau ~ 0.6 mm, because n1 -> t s b sits close to threshold, and n2's RPV width
+# falls below that of n2 -> n1 + soft, which these cards do not generate.  At
+# 0.3, well inside the O(1) indirect bounds, both are prompt (ctau ~ 0.7 um) and
+# the direct RPV decay dominates.  The sample itself does not depend on the
+# value: the widths scale with it, every BR stays 1, and time_of_flight = -1
+# puts the decays at the primary vertex.
+EWKINO_PROMPT_LAMBDA = 0.3
+
+
+def ewkino_prompt_widths(m):
+    """(n1, n2, x1+) widths of the S5b point at m, at EWKINO_PROMPT_LAMBDA."""
+    scale = (EWKINO_PROMPT_LAMBDA / EWKINO_WIDTH_LAMBDA) ** 2
+    return [w * scale for w in EWKINO_RPV_WIDTHS[m]]
 
 
 def rpv_ewkino_customize(m_ewkino):
@@ -1196,7 +1211,7 @@ def rpv_ewkino_customize(m_ewkino):
     different sample, so it is not mixed in here.
     """
     heavy = 1000.0
-    widths = EWKINO_RPV_WIDTHS[m_ewkino]
+    widths = ewkino_prompt_widths(m_ewkino)
     return """# AIDA-Scout S5b: light RPV Higgsino multiplet at {m:g} GeV.
 # Non-excluded companion to RPV_squark150_cascade_LSP100: electroweak production
 # keeps this out of reach of the RPV multijet searches that exclude light squarks.
@@ -1245,11 +1260,11 @@ set param_card mass 2000006 {h:g}
 set param_card rvlamudd 3 2 3 {lam:.1e}
 set param_card rvlamudd 3 3 2 -{lam:.1e}
 
-# Each width is that state's own lambda''_323 partial width (EWKINO_RPV_WIDTHS
-# in make_signal_cards.py), so every decay in the chain has BR = 1, the event
-# mix is the production mix and the cross section MG5 reports is the production
-# cross section, to within a few percent.  A common hand-set width would weight
-# each mode by
+# Each width is that state's own lambda''_323 partial width at this coupling
+# (EWKINO_RPV_WIDTHS in make_signal_cards.py, scaled as lambda''^2), so every
+# decay in the chain has BR = 1, the event mix is the production mix and the
+# cross section MG5 reports is the production cross section, to within a few
+# percent.  A common hand-set width would weight each mode by
 # Gamma_i Gamma_j / width^2 instead.  At this coupling the proper ctau is
 # n1 {c1:.2g} mm, n2 {c2:.2g} mm, x1 {c3:.2g} mm; with time_of_flight = -1 the
 # decays are placed at the primary vertex regardless.
@@ -1257,7 +1272,7 @@ set param_card decay 1000022 {w1:.4e}
 set param_card decay 1000023 {w2:.4e}
 set param_card decay 1000024 {w3:.4e}
 """.format(m=m_ewkino, m1=m_ewkino + 1.0, m2=-(m_ewkino + 1.0), h=heavy,
-           mixing=higgsino_mixing_block(), lam=EWKINO_RPV_LAMBDA,
+           mixing=higgsino_mixing_block(), lam=EWKINO_PROMPT_LAMBDA,
            w1=widths[0], w2=widths[1], w3=widths[2],
            c1=CTAU_MM_TO_WIDTH / widths[0], c2=CTAU_MM_TO_WIDTH / widths[1],
            c3=CTAU_MM_TO_WIDTH / widths[2],
@@ -1326,7 +1341,7 @@ def rpv_ewkino_disp_customize(m_ewkino, ctau_mm):
     # lambda''_223 is chosen so that n1 has the target ctau; the partial widths,
     # all proportional to lambda''^2, scale with it.
     scale = (CTAU_MM_TO_WIDTH / ctau_mm) / EWKINO_RPV_WIDTHS[m_ewkino][0]
-    lam = EWKINO_RPV_LAMBDA * scale ** 0.5
+    lam = EWKINO_WIDTH_LAMBDA * scale ** 0.5
     widths = [w * scale for w in EWKINO_RPV_WIDTHS[m_ewkino]]
     heavy = 1000.0
     return """# AIDA-Scout S5c: displaced RPV Higgsino at {m:g} GeV, ctau = {c:g} mm.
@@ -1418,15 +1433,15 @@ EWKINO_PROD_XSEC = {
 
 def ewkino_ctau_line(m):
     """README bullet on the proper lifetimes of a prompt S5b point."""
-    w_n1, w_n2, w_x1 = EWKINO_RPV_WIDTHS[m]
+    w_n1, w_n2, w_x1 = ewkino_prompt_widths(m)
     line = ("* Proper ctau at lambda''_323 = {0:g}: n1 {1:.2g} mm, n2 {2:.2g} mm, "
             "x1 {3:.2g} mm. The run card's `time_of_flight = -1` puts every decay at "
             "the primary vertex, so the sample is prompt by construction").format(
-                EWKINO_RPV_LAMBDA, CTAU_MM_TO_WIDTH / w_n1, CTAU_MM_TO_WIDTH / w_n2,
+                EWKINO_PROMPT_LAMBDA, CTAU_MM_TO_WIDTH / w_n1, CTAU_MM_TO_WIDTH / w_n2,
                 CTAU_MM_TO_WIDTH / w_x1)
     if CTAU_MM_TO_WIDTH / w_n1 > 1.0e-3:
         # lambda'' at which n1 reaches ctau = 1 um; widths go as lambda''^2.
-        lam_prompt = EWKINO_RPV_LAMBDA * (CTAU_MM_TO_WIDTH / 1.0e-3 / w_n1) ** 0.5
+        lam_prompt = EWKINO_PROMPT_LAMBDA * (CTAU_MM_TO_WIDTH / 1.0e-3 / w_n1) ** 0.5
         line += ("; physically, n1 and n2 are only prompt (ctau < 1 um) for "
                  "lambda''_323 above about {0:.2g}, because n1 -> t s b sits close "
                  "to threshold").format(lam_prompt)
@@ -1437,7 +1452,7 @@ def ewkino_disp_lifetimes(m, ctau_mm):
     """(lambda''_223, n2 ctau in mm, x1 ctau in m) of an S5c point."""
     scale = (CTAU_MM_TO_WIDTH / ctau_mm) / EWKINO_RPV_WIDTHS[m][0]
     w_n2, w_x1 = (w * scale for w in EWKINO_RPV_WIDTHS[m][1:])
-    return (EWKINO_RPV_LAMBDA * scale ** 0.5, CTAU_MM_TO_WIDTH / w_n2,
+    return (EWKINO_WIDTH_LAMBDA * scale ** 0.5, CTAU_MM_TO_WIDTH / w_n2,
             CTAU_MM_TO_WIDTH / w_x1 / 1000.0)
 
 

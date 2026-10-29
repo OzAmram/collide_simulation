@@ -17,7 +17,7 @@ This is the **non-excluded companion** to `RPV_squark150_cascade_LSP100`. That p
 * Expected: 8-10 jets, HT_true = 2m = 400 GeV
 * Widths: each state's own lambda''_323 partial width, so every decay has BR = 1 and the production modes keep their natural mix (one common hand-set width let x1 pairs swamp the sample). MG5's reported cross section is therefore the production cross section, to within about 4% (1.092 against 1.137 pb measured at 200 GeV)
 * LO production cross section **1.137 pb** (`n1 x1+-` 0.369, `n2 x1+-` 0.365, `n1 n2` 0.199, `x1+ x1-` 0.204; MG5 3.5.8, nn23lo1, 14 TeV, no k-factor)
-* Proper ctau at lambda''_323 = 0.01: n1 0.59 mm, n2 0.55 mm, x1 0.00024 mm. The run card's `time_of_flight = -1` puts every decay at the primary vertex, so the sample is prompt by construction; physically, n1 and n2 are only prompt (ctau < 1 um) for lambda''_323 above about 0.24, because n1 -> t s b sits close to threshold
+* Proper ctau at lambda''_323 = 0.3: n1 0.00066 mm, n2 0.00061 mm, x1 2.7e-07 mm. The run card's `time_of_flight = -1` puts every decay at the primary vertex, so the sample is prompt by construction
 
 ## Why it evades (or does not evade) the Phase-2 L1 menu
 

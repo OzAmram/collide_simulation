@@ -346,23 +346,23 @@ quantity added straight to them. At the shipped point:
 
 A factor 3800 over genuine direct production, and because it is nonzero only
 below 4.7 GeV it also skews *which* scalar L-A produces, not just the
-normalisation. It is reproduced as written, because it is what defines the
-authors' L-A sample; `--no-bmeson-term` drops it, and every LHE header carries
-the three-term breakdown so the number is never read at face value. **Affects
-L-A only** — the Higgs benchmarks use `CrosssectionsjustHiggsDecay`, which has
+normalisation. `landscape_LA_direct` therefore runs with `--no-bmeson-term`,
+so its cross section is the 2.92 pb of genuine production; leaving the flag out
+reproduces the authors' L-A as written. Every LHE header carries the three-term
+breakdown either way. **Affects L-A only** — the Higgs benchmarks use `CrosssectionsjustHiggsDecay`, which has
 no such term.
 
 ## The benchmarks
 
 | Point | Process directory | Production | λ | λ′ | Spectrum seed | σ × BR |
 |---|---|---|---|---|---|---|
-| L-A | `landscape_LA_direct` | direct ggF | 1e-4 | 1e-4 | 424242 | 1.12e4 pb¹ |
+| L-A | `landscape_LA_direct` | direct ggF | 1e-4 | 1e-4 | 424242 | 2.92 pb¹ |
 | **L-B** | `landscape_LB_higgs` | h → φφ | 2.7e-3 | 1e-4 | 424242 | 2.70 pb |
 | **L-B-displaced** | `landscape_LB_higgs_displaced` | h → φφ | 1e-4 | 1e-4 | 424242 | 3.70e-3 pb |
 | L-C | `landscape_LC_control` | h → φφ | 2.7e-3 | 2.7e-9 | 424242 | 2.70 pb |
 | L-D1/2/3 | `landscape_LD_spectrum{1,2,3}` | h → φφ | 2.7e-3 | 1e-4 | 515151 / 606060 / 717171 | 2.70 pb |
 
-¹ dominated by the B-meson term above; 2.92 pb without it.
+¹ without the B-meson term above (`--no-bmeson-term`); 1.12e4 pb with it.
 
 L-C is pinned to the **ratio** λ′/λ = 1e-6 rather than to an absolute λ′, so it
 tracks the retuning. It now shares L-B's production, coupling and cross section
@@ -388,13 +388,17 @@ a local MG5 install aborts Pythia at init with a version mismatch.
 
 | | L-A | **L-B** | L-B-displaced | L-C |
 |---|---|---|---|---|
-| multiplicity, mean / median | 4.01 / 4 | **12.38 / 12** | 12.39 / 12 | 4.00 / 4 |
-| parton energy, median | 8.1 GeV | **12.4 GeV** | 12.3 GeV | 47.8 GeV |
-| Σp reconstructs | 2.57 GeV (root mass) | **125.1100** | **125.1100** | **125.1100** |
-| spread on that | 7.5 GeV² | 2.6e-6 GeV | 2.9e-6 GeV | 4.0e-6 GeV |
-| flavour | π± 38%, s 19%, g 18%, π⁰ 18%, μ 7% | π± 38%, s 18%, g 18%, π⁰ 18%, μ 8% | π± 38%, s 19%, π⁰ 18%, g 18%, μ 8% | **c 54%, τ 18%, g 14%, s 5%, b 4%** |
-| parton r_xy, median | 0.41 mm | 0.02 mm | **13.3 mm** | 0.00 mm |
-| displaced > 0.1 mm | 74.2% | 10.9% | **99.1%** | 5.3% |
+| multiplicity, mean / median | 5.67 / 6 | **12.38 / 12** | 12.39 / 12 | 4.00 / 4 |
+| parton energy, median | 4.2 GeV | **12.4 GeV** | 12.3 GeV | 47.8 GeV |
+| Σp reconstructs | 4.66 GeV (root mass) | **125.1100** | **125.1100** | **125.1100** |
+| spread on that | 9.2 GeV | 2.6e-6 GeV | 2.9e-6 GeV | 4.0e-6 GeV |
+| flavour | π± 39%, s 19%, g 18%, π⁰ 18%, μ 7% | π± 38%, s 18%, g 18%, π⁰ 18%, μ 8% | π± 38%, s 19%, π⁰ 18%, g 18%, μ 8% | **c 54%, τ 18%, g 14%, s 5%, b 4%** |
+| parton r_xy, median | 0.77 mm | 0.02 mm | **13.3 mm** | 0.00 mm |
+| displaced > 0.1 mm | 85.2% | 10.9% | **99.1%** | 5.3% |
+
+L-A is without the B-meson term. With it, the term's preference for scalars
+below 4.7 GeV gave 4.01 / 4 partons at a median 8.1 GeV, a 2.57 GeV root mass
+and 74% displaced.
 
 **L-B reproduces the paper's headline directly**: median 12 partons at a median
 12 GeV each, sharing 125 GeV. That was not tuned for — it falls out of the
@@ -408,7 +412,8 @@ boosts → LHE formatting and back out through an independent reader.
 ### Showered, with jets
 
 anti-kT R = 0.4, jets pT > 30 GeV and |η| < 2.4; charged particles |η| < 4,
-pT > 0.1 GeV.
+pT > 0.1 GeV. The L-A numbers here and under PU 200 below were measured with
+the B-meson term still on; re-measure them on the current sample.
 
 | | L-A | **L-B** | L-B-displaced | L-C |
 |---|---|---|---|---|
@@ -569,9 +574,9 @@ L-A has a median L1T PUPPI HT of **zero with 200 pileup vertices in the event** 
 PUPPI removes the pileup and there is nothing underneath it. That is a stronger
 statement than the truth-level one.
 
-Note L-A's `outdir/cross_section.txt` reads 1.125e4 pb: that is the B-meson term
-above, propagated faithfully. Use 2.92 pb, or regenerate with
-`--no-bmeson-term`, if you want the genuine direct-production rate.
+L-A's `outdir/cross_section.txt` now reads 2.92 pb, the genuine
+direct-production rate. The 1.125e4 pb it used to read was the B-meson term
+above.
 
 ### The displacement survives into Delphes
 

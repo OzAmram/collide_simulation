@@ -41,15 +41,21 @@ MEASURED = {
             "its Higgs admixture, cascades within the hidden sector until it "
             "reaches scalars below the pair-production threshold, which then "
             "decay to the Standard Model. The whole event is one such chain: "
-            "**4 partons at a median 8 GeV**, sharing whatever mass the "
-            "produced scalar had (median 2.6 GeV).\n\n"
-            "**This point has nothing to trigger on at all.** Only **3.2% of "
-            "events contain a single 30 GeV jet**, and the median HT over such "
-            "jets is 0. It is not that it fails the menu -- there is no "
-            "hadronic object in the event to fail with."),
+            "**about 6 partons at a median 4 GeV**, sharing whatever mass the "
+            "produced scalar had (mean 4.7 GeV).\n\n"
+            "**This point has nothing to trigger on at all.** With the "
+            "B-meson term still on, only **3.2% of events contained a single "
+            "30 GeV jet**, and the median HT over such jets was 0; without it "
+            "the partons are softer still. It is not that it fails the menu -- "
+            "there is no hadronic object in the event to fail with."),
         "menu": _menu("no -- 0.10%", "no -- 0.15%", "no -- 0.0%", "no -- 0.0%"),
         "notes": """
 ## Measured, truth level, 2000 events, no pileup
+
+**Measured with the Julia's B-meson term still on.** It favoured scalars below
+4.7 GeV; without it the partons are more numerous, softer and more displaced
+(parton level, 2000 events: multiplicity 5.67 / 6, energy median 4.2 GeV,
+85% with r_xy > 0.1 mm against 73%). Re-measure the showered rows.
 
 | | |
 |---|---|
