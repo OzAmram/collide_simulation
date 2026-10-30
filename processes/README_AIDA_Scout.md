@@ -327,7 +327,11 @@ the decay goes four-body through an off-shell top, and the Higgsino becomes
 arguably more interesting signal here (it overlaps with the S3 displacement
 theme), but it is a different sample and was not built.
 
-**Measured** (500 showered events each, anti-kT R = 0.4, |eta| < 2.5):
+**Measured** (500 showered events each, anti-kT R = 0.4, |eta| < 2.5), **before
+the generator fixes** -- bino/wino mixing, no `n1 n2` / `n2 x1` modes, one shared
+hand-set width that skewed the mode mix and, for the displaced point, direct
+RPV decays of n2 and x1 instead of their cascade to n1. See each point's
+README; these numbers need re-measuring:
 
 | Point | N(jet>10) | N(jet>30) | HT₃₀ med | lead med | MET med | HT450 | Jet230 | unweighting |
 |---|---|---|---|---|---|---|---|---|
@@ -357,18 +361,22 @@ this uses λ″₂₂₃ (c s b), which runs off the **charm** Yukawa — smalle
 (y_c/y_t)² ~ 10⁻⁵. The Higgsino is long-lived as a consequence of the mass being
 below m_t, not by fiat.
 
-Because the decays are in the matrix element, the daughters would normally be
-written at the primary vertex and the displacement lost. Two things prevent that:
-`time_of_flight = 0` in the run card makes MG5 write the resonance lifetime
-(VTIMUP) into the LHE, and the width is set to hit the target cτ via
-cτ[mm] = 1.973×10⁻¹³/Γ[GeV].
+MG5 generates the Higgsino production only, and Pythia applies every decay from
+a table in the point's `_pythia8_card.dat`: n2 and x1, 1 GeV above n1, cascade to
+it with soft leptons and neutrinos, and every n1 decays to `c s b`. The cascades
+do not fit in a MG5 decay chain (out of memory, then a link failure), and
+MadSpin neither accepts three-body decays nor writes lifetimes. Pythia takes
+each lifetime from the width, cτ[mm] = 1.973×10⁻¹³/Γ[GeV].
+`LesHouches:setLifetime = 2` makes it draw the lifetimes of the Higgsinos read
+from the LHE as well, which carry no VTIMUP, and `SLHA:readFrom = 0` stops the
+LHE's SLHA header from replacing the table.
 
-**Verified over 4000 resonance entries:** VTIMUP mean **10.02 mm**, median
-**6.84 mm** against the expected 10·ln2 = 6.93, max 90.5 mm — a textbook
-exponential at the requested lifetime. The mechanism works.
+**Verified on 2000 showered events:** n1 proper cτ mean **10.00 ± 0.16 mm** over
+3931 decays (target 10), n2 0.63 mm and x1 0.71 mm (expected 0.64 and 0.68), and
+two n1 decays in 1931 of the 2000 events.
 
-To scan the lifetime, change only the `1000022` width in the customizecards; the
-process directory does not need regenerating.
+To scan the lifetime, change the cτ in `rpv_ewkino_disp_points()` and regenerate
+the cards; the process directory does not change.
 
 Same downstream caveat as S3: the Delphes L1T tracking efficiencies have **no d0
 dependence**, so this chain will not reproduce the loss of displaced tracks at

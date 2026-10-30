@@ -48,9 +48,12 @@ Two things break without this patch:
    non-monotonic-cross-section artifact already noted in
    `processes/README_signals.md`, but it costs the events, not just the
    normalisation.
-2. **Lifetimes.** `RPV_ewkino150_UDD_ctau10mm` sets its 10 mm proper lifetime
-   as `set param_card decay 1000022 1.9730e-14` (Gamma = hbar c / ctau). That
-   is exactly the value being discarded, so the point came out prompt.
+2. **Lifetimes.** When `RPV_ewkino150_UDD_ctau10mm` still decayed n1 in the
+   matrix element, it set its 10 mm proper lifetime as
+   `set param_card decay 1000022 1.9730e-14` (Gamma = hbar c / ctau). That is
+   exactly the value being discarded, so the point came out prompt. (It now
+   generates the production only and takes its lifetimes from a Pythia decay
+   table; see its README.)
 
 ## The patch
 

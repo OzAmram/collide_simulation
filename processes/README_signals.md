@@ -100,8 +100,10 @@ the neutralino, so `set param_card decay 1000022 ...` in a customizecards file
 is silently discarded. The `n1` propagator in the decay chain then has no
 regulator, the integration does not converge, and MadGraph unweights only a
 handful of events -- measured at 9, 5 and 11 out of 5000 requested for the 120,
-300 and 600 GeV cascade points. For `RPV_ewkino150_UDD_ctau10mm` the discarded
-width is also what encodes the lifetime, so that point came out prompt. The
+300 and 600 GeV cascade points. For `RPV_ewkino150_UDD_ctau10mm`, when it still
+decayed n1 in the matrix element, the discarded width was also what encoded the
+lifetime, so that point came out prompt; it now takes its lifetimes from a Pythia
+decay table instead. The
 image builds the patched model next to the stock one, and the proc cards import
 it by name. See `docker/RPVMSSM_UFO_Wn1.md`.
 

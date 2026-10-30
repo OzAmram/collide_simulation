@@ -4,10 +4,13 @@
 # lambda''_223 (c s b), which runs off the charm Yukawa and is naturally
 # long-lived.  lambda''_223 below is set so that n1 hits the target ctau via
 #     ctau[mm] = 1.973e-13 / Gamma[GeV]
-# and the run card sets time_of_flight = 0 so MG5 writes the lifetimes into the
-# LHE.  To scan the lifetime, scale lambda''_223 and all three widths together
-# (Gamma goes as lambda''^2) -- the process directory does not need
-# regenerating.
+#
+# MG5 generates the production only, which depends on the masses and the
+# mixing alone.  The decays -- and so the lifetimes -- are applied by Pythia
+# from this point's _pythia8_card.dat; the coupling and widths here only make
+# the param card in the LHE header describe the same point.  To scan the
+# lifetime, regenerate both cards with a different ctau in
+# rpv_ewkino_disp_points().
 
 # The near-degenerate multiplet, below the top threshold.  n2 carries the
 # negative mass eigenvalue that a real, pure-Higgsino NMIX requires.
@@ -131,14 +134,9 @@ set param_card rvlamudd 3 3 2 0.0
 set param_card rvlamudd 2 2 3 6.6489e-04
 set param_card rvlamudd 2 3 2 -6.6489e-04
 
-# Each width is that state's own lambda''_223 partial width at this coupling,
-# so every decay has BR = 1, the event mix is the production mix and the cross
-# section MG5 reports is the production cross section, to within a few percent.
-# Proper ctau: n1
-# 10 mm, n2 9.67 mm, x1 7.86e+03 mm.  The chargino's RPV width is three
-# orders of magnitude below the neutralinos', so it mostly decays beyond the
-# tracker; a real Higgsino chargino would cascade to n1 plus a soft pion first,
-# which this card does not generate.
+# Total widths, as in the Pythia decay table: n1 its lambda''_223 width at this
+# coupling, n2 and x1 mostly their cascades to n1.  Proper ctau: n1 10 mm,
+# n2 0.64 mm, x1 0.68 mm.
 set param_card decay 1000022 1.9730e-14
-set param_card decay 1000023 2.0411e-14
-set param_card decay 1000024 2.5115e-17
+set param_card decay 1000023 3.0904e-13
+set param_card decay 1000024 2.8930e-13

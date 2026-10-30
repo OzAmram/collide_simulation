@@ -626,7 +626,8 @@ output _OUTDIR_
 """
 
 
-def rpv_run_card(nevents_placeholder="_NEVENTS_", time_of_flight="-1.0"):
+def rpv_run_card(nevents_placeholder="_NEVENTS_", time_of_flight="-1.0",
+                 production_only=False):
     """
     Run card with MLM matching OFF and the SM leading-jet cut kept ON.
 
@@ -653,12 +654,23 @@ def rpv_run_card(nevents_placeholder="_NEVENTS_", time_of_flight="-1.0"):
     ptj2min / ptj3min / ptj4min stay at zero: the SM samples only constrain the
     leading jet, and the whole point of the cascade samples is the soft tail of
     the jet multiplicity.
+
+    production_only=True is for points whose decays are all left to Pythia
+    (S5c): their LHE has no partons for ptj1min to find, so it would reject
+    every event, and it is set to 0 instead.
     """
+    if production_only:
+        ptj_note = ("ptj1min = 0 because this point's\n"
+                    "# LHE carries the production only and has no jet for the cut to find.")
+        ptj1min = " 0.0   = ptj1min ! minimum pt for the leading jet in pt   <-- production only"
+    else:
+        ptj_note = ("ptj1min kept at the repo's\n"
+                    "# standard 10 GeV so that these points carry the same generator-level jet\n"
+                    "# requirement as the Standard Model samples.")
+        ptj1min = " 10.0   = ptj1min ! minimum pt for the leading jet in pt   <-- matches the SM samples"
     return """#*********************************************************************
 # AIDA-Scout S5 run card.  Derived from the repo's standard run card with
-# ickkw / xqcut forced off (spec section 4), ptj1min kept at the repo's
-# standard 10 GeV so that these points carry the same generator-level jet
-# requirement as the Standard Model samples.
+# ickkw / xqcut forced off (spec section 4), {ptj_note}
 #*********************************************************************
   RPV       = run_tag ! name of the run
   {nev} = nevents ! Number of unweighted events requested
@@ -775,7 +787,7 @@ def rpv_run_card(nevents_placeholder="_NEVENTS_", time_of_flight="-1.0"):
  0.0  = xptb ! minimum pt for at least one b
  0.0  = xpta ! minimum pt for at least one photon
  0.0  = xptl ! minimum pt for at least one charged lepton
- 10.0   = ptj1min ! minimum pt for the leading jet in pt   <-- matches the SM samples
+{ptj1min}
  0.0   = ptj2min ! minimum pt for the second jet in pt
  0.0   = ptj3min ! minimum pt for the third jet in pt
  0.0   = ptj4min ! minimum pt for the fourth jet in pt
@@ -815,7 +827,8 @@ def rpv_run_card(nevents_placeholder="_NEVENTS_", time_of_flight="-1.0"):
  1, 2, 3, 4, 5, 6, 21  =  pdgs_for_merging_cut ! PDGs for two cuts above
  5 = maxjetflavor    ! Maximum jet pdg code
    True  = use_syst      ! Enable systematics studies
-""".format(nev=nevents_placeholder, tof=time_of_flight)
+""".format(nev=nevents_placeholder, tof=time_of_flight, ptj_note=ptj_note,
+           ptj1min=ptj1min)
 
 
 # Every RPV coupling entry this UFO defines, by SLHA block.  Read off the model
@@ -1294,55 +1307,149 @@ def rpv_ewkino_points():
 # Higgsino becomes long-lived without any tuning.  The displacement is physical,
 # not imposed.
 #
-# HOW THE DISPLACEMENT SURVIVES THE CHAIN.  The decays are in the matrix element,
-# so the daughters would normally be written at the primary vertex and all the
-# displacement would be lost.  Two things prevent that:
-#   * time_of_flight = 0 in the run card, so MG5 writes the invariant lifetime
-#     (VTIMUP) of the intermediate resonance into the LHE, and
-#   * lambda''_223 is set so that n1 hits a target ctau, using
+# HOW THE DISPLACEMENT SURVIVES THE CHAIN.  MG5 generates the production only,
+# and Pythia decays all three states from the table in the point's
+# _pythia8_card.dat (rpv_ewkino_disp_pythia8_card), which:
+#   * gives each state its total width, from which Pythia takes the lifetime,
 #         ctau[mm] = hbar*c / Gamma = 1.973e-13 / Gamma[GeV],
-#     and every width is its state's own partial width at that coupling.
-# Pythia then propagates the resonance before decaying it, and Delphes'
-# ParticlePropagator starts the daughters from the displaced vertex.
+#   * sets LesHouches:setLifetime = 2, so Pythia also draws the decay times of
+#     the states that come in from the LHE rather than reading VTIMUP (which
+#     MG5 does not write for final-state particles), and
+#   * sets SLHA:readFrom = 0, so the SLHA block in the LHE header does not
+#     switch on Pythia's own SUSY widths in place of this table.
+# Pythia displaces each decay by its sampled lifetime, the hadrons inherit the
+# displaced vertex, and Delphes' ParticlePropagator starts them from there.
 #
-# Verify VTIMUP is actually non-zero in the LHE before trusting the sample --
-# this is the step most likely to fail silently.
+# Not the matrix element, because the cascades below do not fit in one: six
+# nested decay chains need more than 8 GB in MG5's output step, and with the
+# muon channels dropped the n1 n2 subprocess still has 1.7M configurations and
+# fails to link (relocation overflow).  MadSpin rejects the three-body decays
+# and does not write lifetimes.  The price is phase-space kinematics in every
+# decay instead of the matrix element.
 CTAU_MM_TO_WIDTH = 1.973e-13  # ctau[mm] = CTAU_MM_TO_WIDTH / Gamma[GeV]
 
-# Patched model -- see docker/RPVMSSM_UFO_Wn1.md.  This point needs
-# it twice over: the ctau = 10 mm lifetime is set as a width on 1000022
-# (Gamma = hbar c / ctau), which the stock model discards, so the sample came out
-# prompt as well as under-generated.
+# Cascade partial widths in GeV of the S5c point, (n2 > n1 vl vl~ summed over
+# the three flavours, n2 > n1 l+ l- summed over e and mu, x1+ > n1 l+ vl summed
+# over e and mu): MG5 3.5.8 on those decay processes with the point's param
+# card.  n2 and x1 sit 1 GeV above n1, and at the small lambda''_223 that gives
+# n1 its ctau these transitions beat their own RPV decays by about 14x (n2) and
+# 1e4x (x1), so both cascade to n1 and nearly every event carries two
+# n1 -> c s b decays.
+#
+# The real soft products are mostly pions; leptons and neutrinos stand in,
+# since MG5's sub-GeV quark widths are not physical.  Leaving the hadronic
+# channels out lengthens the cascade step to ctau ~ 0.7 mm, against ~0.2 mm
+# with every channel open.  The n1 RPV width scales with ctau and these do
+# not, so the cascade stays dominant only while ctau(n1) >> 1 mm.
+EWKINO_CASCADE_WIDTHS = {
+    150.0: (2.163e-13, 7.233e-14, 2.893e-13),
+}
+
+# Production only; Pythia applies every decay (see above).  The patched model
+# is kept for consistency with the other S5 points, and so that the param card
+# in the LHE header records the n1 width.
 RPV_EWKINO_DISP_PROC_CARD = """import model RPVMSSM_UFO_Wn1
 
 # Displaced light Higgsino multiplet, below the top threshold.
 #
 # lambda''_223 (c s b) rather than _323 (t s b): at m < m_top the t s b mode is
 # closed, and the c s b mode runs off the charm Yukawa, which is small enough
-# that the Higgsino is naturally long-lived.  Three jets per state, two of them
+# that the Higgsino is naturally long-lived.  Three jets per n1, two of them
 # heavy-flavour, all emerging from a displaced vertex.
 #
-# All four production modes of the multiplet, as for the prompt S5b points.
+# All four production modes of the multiplet, and nothing else: n2 and x1
+# cascade to n1 and every n1 decays to c s b in PYTHIA, from the decay table in
+# this point's _pythia8_card.dat.  The cascades do not fit in a MG5 decay
+# chain; see the S5c comment in make_signal_cards.py.
 
-define q2 = c c~ s s~ b b~
-
-generate    p p > n1 x1+, (n1 > q2 q2 q2), (x1+ > q2 q2 q2)
-add process p p > n1 x1-, (n1 > q2 q2 q2), (x1- > q2 q2 q2)
-add process p p > n2 x1+, (n2 > q2 q2 q2), (x1+ > q2 q2 q2)
-add process p p > n2 x1-, (n2 > q2 q2 q2), (x1- > q2 q2 q2)
-add process p p > n1 n2, (n1 > q2 q2 q2), (n2 > q2 q2 q2)
-add process p p > x1+ x1-, (x1+ > q2 q2 q2), (x1- > q2 q2 q2)
+generate    p p > n1 x1+
+add process p p > n1 x1-
+add process p p > n2 x1+
+add process p p > n2 x1-
+add process p p > n1 n2
+add process p p > x1+ x1-
 
 output _OUTDIR_
 """
 
 
+def ewkino_disp_widths(m, ctau_mm):
+    """
+    lambda''_223 and the decay table of the S5c point at m: a dict of each
+    state's total width in GeV and its channels as (BR, products) pairs.  n1
+    decays only through lambda''_223; n2 and x1 mostly cascade to it.  x1's
+    own lambda''_223 width is 1e-4 of its cascade's and is left out.
+    """
+    w_n1 = CTAU_MM_TO_WIDTH / ctau_mm
+    scale = w_n1 / EWKINO_RPV_WIDTHS[m][0]          # (lambda''/1e-2)^2
+    w_n2_rpv = EWKINO_RPV_WIDTHS[m][1] * scale
+    nunu, ll, lnu = EWKINO_CASCADE_WIDTHS[m]
+    w_n2 = nunu + ll + w_n2_rpv
+    csb = [(0.5, "4 3 5"), (0.5, "-4 -3 -5")]       # Majorana: both B = +-1
+    return {
+        "lam": EWKINO_WIDTH_LAMBDA * scale ** 0.5,
+        "n2_ratio": (nunu + ll) / w_n2_rpv,
+        "x1_ratio": lnu / (EWKINO_RPV_WIDTHS[m][2] * scale),
+        1000022: (w_n1, csb),
+        1000023: (w_n2,
+                  [(nunu / 3 / w_n2, "1000022 %d -%d" % (v, v)) for v in (12, 14, 16)]
+                  + [(ll / 2 / w_n2, "1000022 %d -%d" % (l, l)) for l in (11, 13)]
+                  + [(br * w_n2_rpv / w_n2, p) for br, p in csb]),
+        1000024: (lnu, [(0.5, "1000022 -11 12"), (0.5, "1000022 -13 14")]),
+    }
+
+
+def rpv_ewkino_disp_pythia8_card(m_ewkino, ctau_mm):
+    """MG5 shower card carrying the S5c decay table (see the S5c comment)."""
+    table = ewkino_disp_widths(m_ewkino, ctau_mm)
+    masses = {1000022: m_ewkino, 1000023: m_ewkino + 1.0, 1000024: m_ewkino + 1.0}
+    lines = []
+    for pid in (1000022, 1000023, 1000024):
+        width, channels = table[pid]
+        lines += ["%d:m0 = %g" % (pid, masses[pid]),
+                  "%d:mWidth = %.4e" % (pid, width),
+                  "%d:mMin = 0.0" % pid,
+                  "%d:mMax = 0.0" % pid,
+                  "%d:isResonance = on" % pid,
+                  "%d:mayDecay = on" % pid]
+        # id:N:all overwrites channel N of Pythia's default table, every one of
+        # which has BR = 0 until SUSY is initialised -- and it is not, see
+        # SLHA:readFrom.  MG5 stores this card as a dict, so repeated
+        # id:addChannel lines would collapse into the last one.
+        lines += ["%d:%d:all = 1 %.5f 100 %s" % (pid, i, br, products)
+                  for i, (br, products) in enumerate(channels)]
+        lines.append("")
+    return """! AIDA-Scout S5c shower card: m = {m:g} GeV, ctau(n1) = {c:g} mm.
+!
+! MG5 generates the Higgsino production only; Pythia applies every decay from
+! the table below, which make_signal_cards.py builds from EWKINO_RPV_WIDTHS and
+! EWKINO_CASCADE_WIDTHS.  lambda''_223 = {lam:.4e}.
+!
+! Proper ctau: n1 {c1:.3g} mm, n2 {c2:.3g} mm, x1 {c3:.3g} mm (Pythia takes
+! tau0 from mWidth).  meMode 100 is a fixed BR with phase-space kinematics.
+Main:numberOfEvents      = -1
+HEPMCoutput:file         = hepmc.gz
+!
+! The decay times of the states read from the LHE are drawn from their tau0
+! too: MG5 writes no VTIMUP for final-state particles, so with the default
+! (setLifetime = 1) the hard-process Higgsinos would decay at the origin.
+LesHouches:setLifetime   = 2
+!
+! The LHE header carries MG5's param card as SLHA.  Read, it would initialise
+! Pythia's SUSY sector and replace this table with Pythia's own widths.
+SLHA:readFrom            = 0
+!
+{table}""".format(m=m_ewkino, c=ctau_mm, lam=table["lam"],
+                  c1=CTAU_MM_TO_WIDTH / table[1000022][0],
+                  c2=CTAU_MM_TO_WIDTH / table[1000023][0],
+                  c3=CTAU_MM_TO_WIDTH / table[1000024][0],
+                  table="\n".join(lines))
+
+
 def rpv_ewkino_disp_customize(m_ewkino, ctau_mm):
-    # lambda''_223 is chosen so that n1 has the target ctau; the partial widths,
-    # all proportional to lambda''^2, scale with it.
-    scale = (CTAU_MM_TO_WIDTH / ctau_mm) / EWKINO_RPV_WIDTHS[m_ewkino][0]
-    lam = EWKINO_WIDTH_LAMBDA * scale ** 0.5
-    widths = [w * scale for w in EWKINO_RPV_WIDTHS[m_ewkino]]
+    table = ewkino_disp_widths(m_ewkino, ctau_mm)
+    lam = table["lam"]
+    widths = [table[pid][0] for pid in (1000022, 1000023, 1000024)]
     heavy = 1000.0
     return """# AIDA-Scout S5c: displaced RPV Higgsino at {m:g} GeV, ctau = {c:g} mm.
 #
@@ -1350,10 +1457,13 @@ def rpv_ewkino_disp_customize(m_ewkino, ctau_mm):
 # lambda''_223 (c s b), which runs off the charm Yukawa and is naturally
 # long-lived.  lambda''_223 below is set so that n1 hits the target ctau via
 #     ctau[mm] = 1.973e-13 / Gamma[GeV]
-# and the run card sets time_of_flight = 0 so MG5 writes the lifetimes into the
-# LHE.  To scan the lifetime, scale lambda''_223 and all three widths together
-# (Gamma goes as lambda''^2) -- the process directory does not need
-# regenerating.
+#
+# MG5 generates the production only, which depends on the masses and the
+# mixing alone.  The decays -- and so the lifetimes -- are applied by Pythia
+# from this point's _pythia8_card.dat; the coupling and widths here only make
+# the param card in the LHE header describe the same point.  To scan the
+# lifetime, regenerate both cards with a different ctau in
+# rpv_ewkino_disp_points().
 
 # The near-degenerate multiplet, below the top threshold.  n2 carries the
 # negative mass eigenvalue that a real, pure-Higgsino NMIX requires.
@@ -1394,14 +1504,9 @@ set param_card mass 2000006 {h:g}
 set param_card rvlamudd 2 2 3 {lam:.4e}
 set param_card rvlamudd 2 3 2 -{lam:.4e}
 
-# Each width is that state's own lambda''_223 partial width at this coupling,
-# so every decay has BR = 1, the event mix is the production mix and the cross
-# section MG5 reports is the production cross section, to within a few percent.
-# Proper ctau: n1
-# {c1:.3g} mm, n2 {c2:.3g} mm, x1 {c3:.3g} mm.  The chargino's RPV width is three
-# orders of magnitude below the neutralinos', so it mostly decays beyond the
-# tracker; a real Higgsino chargino would cascade to n1 plus a soft pion first,
-# which this card does not generate.
+# Total widths, as in the Pythia decay table: n1 its lambda''_223 width at this
+# coupling, n2 and x1 mostly their cascades to n1.  Proper ctau: n1 {c1:.3g} mm,
+# n2 {c2:.2f} mm, x1 {c3:.2f} mm.
 set param_card decay 1000022 {w1:.4e}
 set param_card decay 1000023 {w2:.4e}
 set param_card decay 1000024 {w3:.4e}
@@ -1449,11 +1554,13 @@ def ewkino_ctau_line(m):
 
 
 def ewkino_disp_lifetimes(m, ctau_mm):
-    """(lambda''_223, n2 ctau in mm, x1 ctau in m) of an S5c point."""
-    scale = (CTAU_MM_TO_WIDTH / ctau_mm) / EWKINO_RPV_WIDTHS[m][0]
-    w_n2, w_x1 = (w * scale for w in EWKINO_RPV_WIDTHS[m][1:])
-    return (EWKINO_WIDTH_LAMBDA * scale ** 0.5, CTAU_MM_TO_WIDTH / w_n2,
-            CTAU_MM_TO_WIDTH / w_x1 / 1000.0)
+    """
+    (lambda''_223, n2 and x1 ctau in mm, and how many times their cascade
+    widths exceed their own lambda''_223 widths) of an S5c point.
+    """
+    t = ewkino_disp_widths(m, ctau_mm)
+    return (t["lam"], CTAU_MM_TO_WIDTH / t[1000023][0],
+            CTAU_MM_TO_WIDTH / t[1000024][0], t["n2_ratio"], t["x1_ratio"])
 
 
 def ewkino_xsec_line(m):
@@ -2186,60 +2293,69 @@ displacement is a consequence of the mass being below the top threshold, not
 something imposed by hand.
 
 lambda''_223 is nonetheless set to {lam:.3g} so that n1 has ctau = {c:g} mm exactly,
-and every width is its state's own partial width at that coupling: the lifetime
-is a controlled knob, and the production modes keep their natural mix. The
-cost is the chargino. Its lambda''_223 width is about {ratio:.0f} times smaller,
-so x1 has ctau = {cx:.1f} m and mostly decays beyond the tracker; n2 sits at
-{c2:.1f} mm. A real Higgsino chargino would first cascade to n1 plus a soft pion,
-which is not generated here.
+so the lifetime is a controlled knob.
 
-## How the displacement survives the chain -- CHECK THIS FIRST
+At that coupling n2 and x1, 1 GeV above n1, do better by cascading to it:
+`n2 -> n1 Z*` and `x1 -> n1 W*` beat their own lambda''_223 decays by about
+{r2:.0f}x and {rx:,.0f}x, with ctau {c2:.2f} and {cx:.2f} mm. Nearly every event
+therefore carries **two displaced n1 -> c s b decays**; the exception is the
+few percent of n2 that decay through lambda''_223 directly.
 
-The decays are generated in the matrix element, so by default the daughters
-would be written at the primary vertex and **all the displacement would be
-lost**. Two things prevent that:
+The real soft products of the cascades are mostly pions. The decay table has
+the leptonic and invisible channels only -- `n2 -> n1 nu nu~` (three flavours)
+and `n1 l+ l-`, `x1+ -> n1 l+ nu` (l = e, mu) -- at MG5's partial widths,
+because MG5's widths into sub-GeV quarks are not physical. Leaving the hadronic
+channels out lengthens the cascade step to ctau ~0.7 mm, against ~0.2 mm with
+every channel open, and moves the n1 decay vertices out by about that much.
 
-* the run card sets `time_of_flight = 0`, so MG5 writes the invariant lifetime
-  (`VTIMUP`) of the intermediate resonance into the LHE, and
-* lambda''_223 and the widths are set for the target ctau.
+## How the decays are generated -- CHECK THIS FIRST
 
-Pythia then propagates the resonance before decaying it, and Delphes'
-`ParticlePropagator` starts the daughters from the displaced vertex.
+MG5 generates the **production only**; Pythia applies every decay, from the
+table in `RPV_ewkino{m:g}_UDD_ctau{c:g}mm_pythia8_card.dat` (written by
+`rpv_ewkino_disp_pythia8_card` in `make_signal_cards.py`). Pythia takes each
+state's lifetime from its width and displaces its decay by a sampled proper
+time; the hadrons inherit the displaced vertex, and Delphes'
+`ParticlePropagator` starts them from there. Two settings in that card are
+essential:
 
-**This is the step most likely to fail silently.** Before trusting the sample,
-open the LHE and confirm `VTIMUP` is non-zero for the 1000022 entries. If it is
-zero, the sample is prompt and worthless as a displaced benchmark.
+* `LesHouches:setLifetime = 2`. A production-only LHE has no lifetime
+  (`VTIMUP`) for the final-state Higgsinos, and with the default Pythia decays
+  them at the primary vertex -- the sample would be **silently prompt**.
+* `SLHA:readFrom = 0`. The LHE header carries MG5's param card as SLHA, and
+  reading it would switch on Pythia's own SUSY widths in place of the table.
 
-## Downstream caveats, same as S3
+The decays are not in the matrix element, as they are for the other S5 points,
+because the cascades do not fit: the six nested decay chains need more than
+8 GB in MG5's output step, and even with the muon channels dropped the `n1 n2`
+subprocess has 1.7M configurations and fails to link. MadSpin rejects the
+three-body decays and writes no lifetimes. The price is **phase-space
+kinematics in every decay** -- for n1 -> c s b through 1 TeV off-shell
+squarks, and for the soft cascade products.
 
-* `cards/delphes_card.dat` has **no d0 dependence** in its L1T tracking
-  efficiencies -- they are functions of pt and eta only. So this sample is
-  correct at truth level but the chain will not reproduce the loss of displaced
-  tracks at L1. See the S3 point READMEs for the same limitation.
-* Delphes drops particles produced outside the tracker (R = 1.29 m). At
-  ctau = {c:g} mm with the boosts here that should be a small effect, but it grows
-  quickly if the lifetime is scanned upward.
+## Measured -- lifetimes and cascade
 
-## Measured -- and the displacement is confirmed real
+2000 events generated with these cards and showered with this table (Pythia
+8.310), each Higgsino followed to its decay in the HepMC:
 
-MG5 generates the process and the lifetime survives into the LHE. Over 4000
-resonance entries, measured when all three states still shared the n1 width
-(n1 and n2 keep it now; x1 does not, see above):
+| state | decays | proper ctau, mean | expected | lab decay distance, median |
+|---|---|---|---|---|
+| n1 | 3931 | **10.00 +- 0.16 mm** | {c:g} mm | 16 mm |
+| n2 | 989 | 0.63 +- 0.02 mm | {c2:.2f} mm | 0.9 mm |
+| x1 | 1985 | 0.71 +- 0.02 mm | {cx:.2f} mm | 1.0 mm |
 
-| VTIMUP | measured | expected for ctau = {c:g} mm |
-|---|---|---|
-| mean | **10.02 mm** | 10.0 |
-| median | **6.84 mm** | 6.93 (= 10 ln2) |
-| max | 90.5 mm | — |
+1931 events have two n1 decays and 69 have one, an n2 having decayed directly
+(3.3% of events expected). Every n1 decays to c s b or its conjugate,
+colour-connected through a junction. MG5 reports 3.200 pb, the production
+cross section. The full chain (`ci/run_pipeline_test.sh`: MG5's own Pythia
+with this card, then Delphes at 200 pileup) passes on 20 events, with two
+displaced n1 decays in every one.
 
-That is a textbook exponential at the requested lifetime, so the
-`time_of_flight = 0` mechanism works and the sample really is displaced.
-
-**The jet numbers were measured before the mixing and width fixes** -- with the UFO's
-default bino n1 and wino x1, without the `n1 n2` / `n2 x1` modes, and with
-one common hand-set width that skewed the mode mix. Re-measure on the
-current cards before relying on the numbers here or in the menu discussion
-below.
+**The jet numbers were measured before the generator fixes** -- with the UFO's
+default bino n1 and wino x1, without the `n1 n2` / `n2 x1` modes, with one
+common hand-set width that skewed the mode mix, and with n2 and x1 decaying
+directly through lambda''_223 rather than cascading (x1 then had ctau ~8 m
+and mostly decayed outside the tracker). Re-measure on the current cards
+before relying on the numbers here or in the menu discussion below.
 
 Jets, on 500 showered events (anti-kT R = 0.4, |eta| < 2.5):
 
@@ -2253,9 +2369,8 @@ Jets, on 500 showered events (anti-kT R = 0.4, |eta| < 2.5):
 | fires PuppiHT450 | **0.11** |
 | fires SinglePuppiJet230 | **0.04** |
 
-**Unweighting is excellent: the full 2000-event request came back unweighted.**
-Compare the squark cascade's eight-parton chain at 0.2-0.7%. This point is cheap
-to produce at scale.
+**Cheap to produce.** MG5 generates 2 -> 2 production only, which unweights
+trivially, and the decays add no cost in Pythia.
 
 ## This is the better of the two Higgsino points for menu evasion
 
@@ -2271,9 +2386,9 @@ long-lived. The cost is jet multiplicity: 6.4 rather than 7.1, both short of the
   efficiencies -- they are functions of pt and eta only. The sample is correct at
   truth level, but the chain will not reproduce the loss of displaced tracks at
   L1. See the S3 point READMEs for the identical limitation.
-* Delphes drops particles produced outside the tracker (R = 1.29 m). The measured
-  VTIMUP tail reaches 90 mm proper, so with boost this is a small but non-zero
-  effect here, and it grows quickly if the lifetime is scanned upward.
+* Delphes drops particles produced outside the tracker (R = 1.29 m). At
+  ctau = {c:g} mm and these boosts that is a small effect, but it grows quickly
+  if the lifetime is scanned upward.
 """
 
 RPV_EWKINO_NOTES = """
@@ -2542,27 +2657,31 @@ def main():
         os.makedirs(d, exist_ok=True)
         with open(os.path.join(d, "{0}_proc_card.dat".format(name)), "w") as fh:
             fh.write(RPV_EWKINO_DISP_PROC_CARD)
-        # time_of_flight = 0 so MG5 writes the resonance lifetime into the LHE.
         with open(os.path.join(d, "{0}_run_card.dat".format(name)), "w") as fh:
-            fh.write(rpv_run_card(time_of_flight="0.0"))
+            fh.write(rpv_run_card(production_only=True))
         with open(os.path.join(d, "{0}_customizecards.dat".format(name)), "w") as fh:
             fh.write(rpv_ewkino_disp_customize(m, ctau))
+        # The decays: Pythia applies all of them, see the S5c comment.
+        with open(os.path.join(d, "{0}_pythia8_card.dat".format(name)), "w") as fh:
+            fh.write(rpv_ewkino_disp_pythia8_card(m, ctau))
         write_readme(
             os.path.join(d, "README.md"),
             name=name, sid="S5c (displaced RPV Higgsino, below the top threshold)",
             mode="madgraph",
             what=("Electroweak production of a near-degenerate Higgsino multiplet at "
-                  "{0:g} GeV -- **below the top threshold** -- decaying through "
-                  "lambda''_223 to c s b with a proper lifetime of **ctau = {1:g} mm**. "
-                  "Three jets per state, two of them heavy flavour, all emerging from a "
-                  "displaced vertex. No MET.\n\n"
+                  "{0:g} GeV -- **below the top threshold**. n2 and x1 cascade to n1 "
+                  "with sub-GeV emissions, and every n1 decays through lambda''_223 to "
+                  "c s b with a proper lifetime of **ctau = {1:g} mm**: two displaced "
+                  "three-jet vertices per event, two of each three jets heavy flavour. "
+                  "No MET.\n\n"
                   "This is the long-lived member of the S5b family: the same "
                   "non-excluded electroweak production, but with the decay pushed "
                   "off-vertex rather than prompt.").format(m, ctau),
-            config=("* Model `RPVMSSM_UFO_Wn1` (built into the image); the patch is what "
-                    "makes the lifetime below take effect at all -- see "
-                    "`docker/RPVMSSM_UFO_Wn1.md`\n"
-                    "* Decays in the **matrix element**\n"
+            config=("* Model `RPVMSSM_UFO_Wn1` (built into the image, see "
+                    "`docker/RPVMSSM_UFO_Wn1.md`), for the production only\n"
+                    "* **MG5 generates the production; Pythia applies every decay** "
+                    "from the table in `{9}_pythia8_card.dat`. The cascades do not fit "
+                    "in a MG5 decay chain (see below)\n"
                     "* Production: `p p > n1 x1+-`, `n2 x1+-`, `n1 n2`, `x1+ x1-` -- "
                     "electroweak, the full multiplet\n"
                     "* **Pure-Higgsino mixing** set explicitly in the customizecards "
@@ -2573,29 +2692,31 @@ def main():
                     "* Multiplet at {0:g} GeV, everything else decoupled at 1 TeV\n"
                     "* **lambda''_223 only** (c s b); all other RVLAMUDD entries zeroed\n"
                     "* lambda''_223 = {4:.3g}, which gives n1 a width of {1:.4e} GeV, "
-                    "i.e. ctau = {2:g} mm via ctau[mm] = 1.973e-13 / Gamma[GeV]; n2 and "
-                    "x1 carry their own partial widths at that coupling (ctau {5:.1f} mm "
-                    "and {6:.1f} m), so every decay has BR = 1\n"
-                    "* **run_card sets `time_of_flight = 0`** so MG5 writes the resonance "
-                    "lifetime (VTIMUP) into the LHE -- without this the displacement is "
-                    "silently lost\n"
-                    "* To scan the lifetime, scale lambda''_223 and all three widths "
-                    "together in the customizecards (Gamma goes as lambda''^2); the "
-                    "process directory does not need regenerating\n"
-                    "* Cross section: with every width its own partial width, MG5's "
-                    "reported number is the production cross section to within about "
-                    "4% (3.074 against 3.195 pb measured)\n"
+                    "i.e. ctau = {2:g} mm via ctau[mm] = 1.973e-13 / Gamma[GeV]\n"
+                    "* n2 and x1 **cascade to n1** (`n2 -> n1 nu nu~` and `n1 l+ l-`, "
+                    "`x1+ -> n1 l+ nu`, l = e, mu), which beats their own lambda''_223 "
+                    "decays by {7:.0f}x and {8:,.0f}x (ctau {5:.2f} and {6:.2f} mm)\n"
+                    "* The shower card sets `LesHouches:setLifetime = 2`, so Pythia "
+                    "draws the decay times of the Higgsinos read from the LHE too, and "
+                    "`SLHA:readFrom = 0`, so the param card in the LHE header does not "
+                    "replace the table with Pythia's own SUSY widths\n"
+                    "* run_card: `ptj1min = 0`, because the LHE holds the production "
+                    "only and has no jet for the cut to find\n"
+                    "* To scan the lifetime, change the ctau in "
+                    "`rpv_ewkino_disp_points()` and regenerate the cards; the process "
+                    "directory does not change. The cascades stay dominant while "
+                    "ctau(n1) >> 1 mm\n"
+                    "* Cross section: every decay table sums to BR = 1, so MG5's "
+                    "reported number is the production cross section\n"
                     "{3}").format(m, CTAU_MM_TO_WIDTH / ctau, ctau, ewkino_xsec_line(m),
-                                  *ewkino_disp_lifetimes(m, ctau)),
+                                  *(ewkino_disp_lifetimes(m, ctau) + (name,))),
             menu=MENU.format(
                 ht="**likely no** -- HT_true = {0:.0f} GeV over six jets".format(2 * m),
                 jet="**no**", quad="verify", bph="no", mu44="no", ele="no",
                 pho="no", tau="no", met="**no** -- RPV, nothing escapes"),
             notes=RPV_EWKINO_DISP_NOTES.format(
-                m=m, c=ctau, lam=ewkino_disp_lifetimes(m, ctau)[0],
-                c2=ewkino_disp_lifetimes(m, ctau)[1],
-                cx=ewkino_disp_lifetimes(m, ctau)[2],
-                ratio=EWKINO_RPV_WIDTHS[m][0] / EWKINO_RPV_WIDTHS[m][2]))
+                m=m, c=ctau, **dict(zip(("lam", "c2", "cx", "r2", "rx"),
+                                        ewkino_disp_lifetimes(m, ctau)))))
         written.append(d)
 
     build_readmes(args.outdir)
